@@ -312,6 +312,15 @@ const elements = {
 };
 
 // ===== Game Initialization =====
+// UUID generator for unique tile IDs
+function generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
 function generateTiles(levelConfig) {
     const tiles = [];
     // Get themed furniture for this level
@@ -322,7 +331,7 @@ function generateTiles(levelConfig) {
     types.forEach(type => {
         for (let i = 0; i < levelConfig.tilesPerType; i++) {
             tiles.push({
-                id: `tile-${tiles.length}`,
+                id: generateUUID(),  // Unique UUID for each tile
                 type: type.id,
                 image: type.image,
                 layer: 0,
@@ -501,25 +510,46 @@ function checkMatches() {
     // Check if any type has 3 matches
     Object.keys(typeCount).forEach(type => {
         if (typeCount[type] >= 3) {
-            // Remove 3 matching tiles
-            let removed = 0;
-            gameState.slots = gameState.slots.filter(tile => {
-                if (tile.type === type && removed < 3) {
-                    removed++;
-                    return false;
+            // Find the 3 matching tiles to remove
+            const tilesToRemove = [];
+            gameState.slots.forEach(tile => {
+                if (tile.type === type && tilesToRemove.length < 3) {
+                    tilesToRemove.push(tile.id);
                 }
-                return true;
+            });
+
+            // Add .removing class to trigger animation
+            tilesToRemove.forEach(tileId => {
+                const slotElements = elements.slotContainer.querySelectorAll('.slot .tile');
+                slotElements.forEach((el, index) => {
+                    if (gameState.slots[index] && gameState.slots[index].id === tileId) {
+                        el.classList.add('removing');
+                    }
+                });
             });
 
             playMatchSound();
 
-            // Re-render slots immediately without animation
-            renderSlots();
+            // Wait for animation to complete (300ms) before removing from data
+            setTimeout(() => {
+                // Remove 3 matching tiles from data
+                let removed = 0;
+                gameState.slots = gameState.slots.filter(tile => {
+                    if (tile.type === type && removed < 3) {
+                        removed++;
+                        return false;
+                    }
+                    return true;
+                });
 
-            // Check victory after match
-            if (gameState.tiles.length === 0 && gameState.slots.length === 0) {
-                victory();
-            }
+                // Re-render slots after data removal
+                renderSlots();
+
+                // Check victory after match
+                if (gameState.tiles.length === 0 && gameState.slots.length === 0) {
+                    victory();
+                }
+            }, 300);
         }
     });
 }
@@ -534,9 +564,9 @@ function victory() {
     const themeFurniture = FURNITURE_THEMES[config.theme];
     const types = themeFurniture.slice(0, config.types);
 
-    // Show furniture showcase
+    // Show furniture showcase with images
     elements.furnitureShowcase.innerHTML = types.map(type =>
-        `<div class="showcase-item">${type.icon}</div>`
+        `<div class="showcase-item"><img src="${type.image}" alt="${type.id}" style="width: 32px; height: 32px; object-fit: contain;"></div>`
     ).join('');
 
     // Check if this is the final level (grand prize) or intermediate level
