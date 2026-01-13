@@ -114,30 +114,30 @@ const TRANSLATIONS = {
 const FURNITURE_THEMES = {
     // Level 1: Living Room (客厅)
     livingRoom: [
-        { id: 'sofa', icon: '🛋️' },
-        { id: 'armchair', icon: '🪑' },
-        { id: 'coffee-table', icon: '☕' },
-        { id: 'tv-stand', icon: '📺' },
-        { id: 'floor-lamp', icon: '🪔' },
-        { id: 'bookshelf', icon: '📚' }
+        { id: 'armchair', image: 'assets/images/armchair.png' },
+        { id: 'dining-chair', image: 'assets/images/dining_chair.png' },
+        { id: 'table', image: 'assets/images/table.png' },
+        { id: 'stool', image: 'assets/images/stool.png' },
+        { id: 'pattern1', image: 'assets/images/pattern1.png' },
+        { id: 'lounge-chair', image: 'assets/images/lounge_chair.png' }
     ],
     // Level 2: Outdoor (户外)
     outdoor: [
-        { id: 'garden-chair', icon: '🪑' },
-        { id: 'sun-lounger', icon: '🛏️' },
-        { id: 'patio-table', icon: '🪵' },
-        { id: 'umbrella', icon: '⛱️' },
-        { id: 'hammock', icon: '🌴' },
-        { id: 'planter', icon: '🪴' }
+        { id: 'ladder-chair', image: 'assets/images/ladder_chair.png' },
+        { id: 'round-table', image: 'assets/images/round_table.png' },
+        { id: 'armchair', image: 'assets/images/armchair.png' },
+        { id: 'pattern2', image: 'assets/images/pattern2.png' },
+        { id: 'dining-chair', image: 'assets/images/dining_chair.png' },
+        { id: 'stool', image: 'assets/images/stool.png' }
     ],
     // Level 3: Bedroom (卧室)
     bedroom: [
-        { id: 'bed', icon: '🛏️' },
-        { id: 'wardrobe', icon: '🚪' },
-        { id: 'dresser', icon: '🪞' },
-        { id: 'nightstand', icon: '🛋️' },
-        { id: 'mirror', icon: '🪞' },
-        { id: 'desk', icon: '🖥️' }
+        { id: 'lounge-chair', image: 'assets/images/lounge_chair.png' },
+        { id: 'pattern1', image: 'assets/images/pattern1.png' },
+        { id: 'table', image: 'assets/images/table.png' },
+        { id: 'ladder-chair', image: 'assets/images/ladder_chair.png' },
+        { id: 'pattern2', image: 'assets/images/pattern2.png' },
+        { id: 'round-table', image: 'assets/images/round_table.png' }
     ]
 };
 
@@ -235,22 +235,29 @@ function playWoodKnock() {
 function playMatchSound() {
     if (!gameState.soundEnabled || !audioContext) return;
 
-    // Play a satisfying "ding" for matches
-    const osc = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
+    // Play Happy Match style sound - cheerful bubble pop with chime
+    const notes = [
+        { freq: 659, start: 0, duration: 0.1 },     // E5
+        { freq: 784, start: 0.05, duration: 0.1 },  // G5
+        { freq: 1047, start: 0.1, duration: 0.15 }  // C6
+    ];
 
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(880, audioContext.currentTime);
-    osc.frequency.setValueAtTime(1100, audioContext.currentTime + 0.1);
+    notes.forEach(note => {
+        const osc = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
 
-    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(note.freq, audioContext.currentTime + note.start);
 
-    osc.connect(gainNode);
-    gainNode.connect(audioContext.destination);
+        gainNode.gain.setValueAtTime(0.4, audioContext.currentTime + note.start);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + note.start + note.duration);
 
-    osc.start(audioContext.currentTime);
-    osc.stop(audioContext.currentTime + 0.3);
+        osc.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        osc.start(audioContext.currentTime + note.start);
+        osc.stop(audioContext.currentTime + note.start + note.duration);
+    });
 }
 
 function playVictorySound() {
@@ -317,8 +324,7 @@ function generateTiles(levelConfig) {
             tiles.push({
                 id: `tile-${tiles.length}`,
                 type: type.id,
-                icon: type.icon,
-                name: type.name,
+                image: type.image,
                 layer: 0,
                 x: 0,
                 y: 0,
@@ -408,7 +414,7 @@ function renderTiles() {
         tileEl.style.animationDelay = `${index * 0.02}s`;
 
         tileEl.innerHTML = `
-            <span class="tile-icon">${tile.icon}</span>
+            <img src="${tile.image}" class="tile-image" alt="${getFurnitureName(tile.type)}">
             <span class="tile-name">${getFurnitureName(tile.type)}</span>
         `;
 
@@ -433,7 +439,7 @@ function renderSlots() {
             const tile = gameState.slots[index];
             slotEl.innerHTML = `
                 <div class="tile">
-                    <span class="tile-icon">${tile.icon}</span>
+                    <img src="${tile.image}" class="tile-image" alt="${tile.type}">
                 </div>
             `;
         }
@@ -507,18 +513,13 @@ function checkMatches() {
 
             playMatchSound();
 
-            // Animate matching slots
-            const slots = elements.slotContainer.querySelectorAll('.slot.filled');
-            slots.forEach(slot => slot.classList.add('matching'));
-            setTimeout(() => {
-                slots.forEach(slot => slot.classList.remove('matching'));
-                renderSlots();
+            // Re-render slots immediately without animation
+            renderSlots();
 
-                // Check victory after match
-                if (gameState.tiles.length === 0 && gameState.slots.length === 0) {
-                    victory();
-                }
-            }, 300);
+            // Check victory after match
+            if (gameState.tiles.length === 0 && gameState.slots.length === 0) {
+                victory();
+            }
         }
     });
 }
