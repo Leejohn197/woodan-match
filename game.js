@@ -1,25 +1,22 @@
 /**
  * Wood Match - Furniture Tile Matching Game
  * A "羊了个羊" inspired game for Indonesian wooden furniture exhibition
+ * Multi-level progressive mode with themed furniture
  */
 
 // ===== Translations =====
 const TRANSLATIONS = {
     id: {
         tagline: 'Permainan Furnitur Kayu',
-        tutorial: 'Tutorial',
-        challenge: 'Tantangan',
-        level1Desc: 'Tingkat 1 - Mudah',
-        level2Desc: 'Tingkat 2 - Sulit',
         startGame: 'Mulai Main',
-        level1: 'Tingkat 1',
-        level2: 'Tingkat 2',
         remaining: 'Sisa',
         tiles: 'ubin',
         congratulations: 'Selamat!',
+        levelCleared: 'Tingkat {level} Selesai!',
         victoryMessage: 'Anda telah membuka set furnitur mewah!',
         claimPrize: 'Klaim Hadiah',
-        nextLevel: 'Tingkat Berikutnya',
+        nextLevel: 'Level Berikutnya',
+        grandPrize: 'Hadiah Utama!',
         gameOver: 'Permainan Berakhir',
         gameOverMessage: 'Slot sudah penuh! Coba lagi?',
         tryAgain: 'Coba Lagi',
@@ -27,29 +24,50 @@ const TRANSLATIONS = {
         yourPrize: 'Hadiah Anda!',
         showScreen: 'Tunjukkan layar ini kepada staff kami untuk menerima hadiah spesial!',
         close: 'Tutup',
-        // Furniture names
-        'teak-chair': 'Kursi Jati',
-        'rattan-sofa': 'Sofa Rotan',
-        'bedside-table': 'Meja Samping',
+        // Level themes
+        level1Theme: 'Furnitur Ruang Tamu',
+        level2Theme: 'Furnitur Outdoor',
+        level3Theme: 'Furnitur Kamar Tidur',
+        // Level names
+        level1Name: 'Tingkat 1',
+        level2Name: 'Tingkat 2',
+        level3Name: 'Tingkat 3',
+        level1Desc: 'Ruang Tamu - Mudah',
+        level2Desc: 'Outdoor - Sedang',
+        level3Desc: 'Kamar Tidur - Sulit',
+        // Furniture names - Living Room
+        'sofa': 'Sofa',
+        'armchair': 'Kursi Sofa',
         'coffee-table': 'Meja Kopi',
-        'cabinet': 'Lemari',
-        'shelf': 'Rak Buku'
+        'tv-stand': 'Rak TV',
+        'floor-lamp': 'Lampu Lantai',
+        'bookshelf': 'Rak Buku',
+        // Furniture names - Outdoor
+        'garden-chair': 'Kursi Taman',
+        'sun-lounger': 'Kursi Berjemur',
+        'patio-table': 'Meja Teras',
+        'umbrella': 'Payung',
+        'hammock': 'Hammock',
+        'planter': 'Pot Tanaman',
+        // Furniture names - Bedroom
+        'bed': 'Tempat Tidur',
+        'wardrobe': 'Lemari Pakaian',
+        'dresser': 'Meja Rias',
+        'nightstand': 'Meja Samping',
+        'mirror': 'Cermin',
+        'desk': 'Meja Kerja'
     },
     zh: {
         tagline: '木质家具消消乐',
-        tutorial: '教程',
-        challenge: '挑战',
-        level1Desc: '第1关 - 简单',
-        level2Desc: '第2关 - 困难',
         startGame: '开始游戏',
-        level1: '第1关',
-        level2: '第2关',
         remaining: '剩余',
         tiles: '块',
         congratulations: '恭喜!',
+        levelCleared: '第{level}关通过!',
         victoryMessage: '您已解锁豪华家具套装!',
         claimPrize: '领取奖品',
-        nextLevel: '下一关',
+        nextLevel: '进入下一关',
+        grandPrize: '终极大奖!',
         gameOver: '游戏结束',
         gameOverMessage: '槽位已满！再试一次？',
         tryAgain: '再试一次',
@@ -57,53 +75,113 @@ const TRANSLATIONS = {
         yourPrize: '您的奖品!',
         showScreen: '请向工作人员展示此屏幕以领取特别奖品！',
         close: '关闭',
-        // Furniture names
-        'teak-chair': '柚木椅',
-        'rattan-sofa': '藤编沙发',
-        'bedside-table': '床头柜',
+        // Level themes
+        level1Theme: '客厅家具',
+        level2Theme: '户外家具',
+        level3Theme: '卧室家具',
+        // Level names
+        level1Name: '第1关',
+        level2Name: '第2关',
+        level3Name: '第3关',
+        level1Desc: '客厅 - 简单',
+        level2Desc: '户外 - 中等',
+        level3Desc: '卧室 - 困难',
+        // Furniture names - Living Room
+        'sofa': '沙发',
+        'armchair': '单人沙发',
         'coffee-table': '茶几',
-        'cabinet': '木柜',
-        'shelf': '书架'
+        'tv-stand': '电视柜',
+        'floor-lamp': '落地灯',
+        'bookshelf': '书架',
+        // Furniture names - Outdoor
+        'garden-chair': '花园椅',
+        'sun-lounger': '躺椅',
+        'patio-table': '露台桌',
+        'umbrella': '遮阳伞',
+        'hammock': '吊床',
+        'planter': '花盆',
+        // Furniture names - Bedroom
+        'bed': '床',
+        'wardrobe': '衣柜',
+        'dresser': '梳妆台',
+        'nightstand': '床头柜',
+        'mirror': '镜子',
+        'desk': '书桌'
     }
 };
 
-// ===== Furniture Types =====
-const FURNITURE_TYPES = [
-    { id: 'teak-chair', icon: '🪑' },
-    { id: 'rattan-sofa', icon: '🛋️' },
-    { id: 'bedside-table', icon: '🪵' },
-    { id: 'coffee-table', icon: '☕' },
-    { id: 'cabinet', icon: '🗄️' },
-    { id: 'shelf', icon: '📚' }
-];
+// ===== Furniture Types by Theme =====
+const FURNITURE_THEMES = {
+    // Level 1: Living Room (客厅)
+    livingRoom: [
+        { id: 'sofa', icon: '🛋️' },
+        { id: 'armchair', icon: '🪑' },
+        { id: 'coffee-table', icon: '☕' },
+        { id: 'tv-stand', icon: '📺' },
+        { id: 'floor-lamp', icon: '🪔' },
+        { id: 'bookshelf', icon: '📚' }
+    ],
+    // Level 2: Outdoor (户外)
+    outdoor: [
+        { id: 'garden-chair', icon: '🪑' },
+        { id: 'sun-lounger', icon: '🛏️' },
+        { id: 'patio-table', icon: '🪵' },
+        { id: 'umbrella', icon: '⛱️' },
+        { id: 'hammock', icon: '🌴' },
+        { id: 'planter', icon: '🪴' }
+    ],
+    // Level 3: Bedroom (卧室)
+    bedroom: [
+        { id: 'bed', icon: '🛏️' },
+        { id: 'wardrobe', icon: '🚪' },
+        { id: 'dresser', icon: '🪞' },
+        { id: 'nightstand', icon: '🛋️' },
+        { id: 'mirror', icon: '🪞' },
+        { id: 'desk', icon: '🖥️' }
+    ]
+};
 
 // ===== Level Configurations =====
 const LEVEL_CONFIGS = {
     1: {
-        name: 'Tutorial',
-        nameZh: '教程',
-        subtitle: 'Tingkat 1 - Mudah',
-        subtitleZh: '第1关 - 简单',
-        types: 3,
-        tilesPerType: 6,
-        layers: 2,
+        theme: 'livingRoom',
+        themeKey: 'level1Theme',
+        nameKey: 'level1Name',
+        descKey: 'level1Desc',
+        types: 3,           // Only 3 furniture types - very easy
+        tilesPerType: 6,    // 18 total tiles
+        layers: 2,          // 2 layers - minimal overlap
         gridWidth: 4,
         gridHeight: 3,
-        description: 'Level tutorial sangat mudah!'
+        hasPrize: false     // No prize, just continue
     },
     2: {
-        name: 'Tantangan',
-        nameZh: '挑战',
-        subtitle: 'Tingkat 2 - Sulit',
-        subtitleZh: '第2关 - 困难',
-        types: 6,
-        tilesPerType: 12,
-        layers: 4,
+        theme: 'outdoor',
+        themeKey: 'level2Theme',
+        nameKey: 'level2Name',
+        descKey: 'level2Desc',
+        types: 4,           // 4 furniture types - medium
+        tilesPerType: 9,    // 36 total tiles
+        layers: 3,          // 3 layers
+        gridWidth: 5,
+        gridHeight: 4,
+        hasPrize: false     // No prize, continue to final
+    },
+    3: {
+        theme: 'bedroom',
+        themeKey: 'level3Theme',
+        nameKey: 'level3Name',
+        descKey: 'level3Desc',
+        types: 6,           // All 6 furniture types - hard
+        tilesPerType: 12,   // 72 total tiles
+        layers: 4,          // 4 layers - maximum overlap
         gridWidth: 6,
         gridHeight: 5,
-        description: 'Bisakah Anda menyelesaikannya?'
+        hasPrize: true      // Grand prize!
     }
 };
+
+const MAX_LEVEL = 3;
 
 // ===== Game State =====
 const gameState = {
@@ -205,7 +283,7 @@ const elements = {
     backBtn: document.getElementById('back-btn'),
     soundBtn: document.getElementById('sound-btn'),
     soundIcon: document.getElementById('sound-icon'),
-    levelBtns: document.querySelectorAll('.level-btn'),
+    journeySteps: document.querySelectorAll('.journey-step[data-level]'),
     currentLevel: document.getElementById('current-level'),
     levelSubtitle: document.getElementById('level-subtitle'),
     tileContainer: document.getElementById('tile-container'),
@@ -213,6 +291,9 @@ const elements = {
     progressFill: document.getElementById('progress-fill'),
     tilesRemaining: document.getElementById('tiles-remaining'),
     victoryModal: document.getElementById('victory-modal'),
+    victoryIcon: document.getElementById('victory-icon'),
+    victoryTitle: document.getElementById('victory-title'),
+    victoryMessage: document.getElementById('victory-message'),
     gameoverModal: document.getElementById('gameover-modal'),
     claimModal: document.getElementById('claim-modal'),
     furnitureShowcase: document.getElementById('furniture-showcase'),
@@ -223,22 +304,12 @@ const elements = {
     closeClaimBtn: document.getElementById('close-claim-btn')
 };
 
-// ===== Level Selection =====
-elements.levelBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-        elements.levelBtns.forEach(b => b.classList.remove('selected'));
-        btn.classList.add('selected');
-        gameState.currentLevel = parseInt(btn.dataset.level);
-    });
-});
-
-// Select first level by default
-document.querySelector('.level-btn[data-level="1"]').classList.add('selected');
-
 // ===== Game Initialization =====
 function generateTiles(levelConfig) {
     const tiles = [];
-    const types = FURNITURE_TYPES.slice(0, levelConfig.types);
+    // Get themed furniture for this level
+    const themeFurniture = FURNITURE_THEMES[levelConfig.theme];
+    const types = themeFurniture.slice(0, levelConfig.types);
 
     // Generate tiles: 3 of each type must exist for matches
     types.forEach(type => {
@@ -458,17 +529,45 @@ function victory() {
 
     playVictorySound();
 
+    const config = LEVEL_CONFIGS[gameState.currentLevel];
+    const themeFurniture = FURNITURE_THEMES[config.theme];
+    const types = themeFurniture.slice(0, config.types);
+
     // Show furniture showcase
-    const types = FURNITURE_TYPES.slice(0, LEVEL_CONFIGS[gameState.currentLevel].types);
     elements.furnitureShowcase.innerHTML = types.map(type =>
         `<div class="showcase-item">${type.icon}</div>`
     ).join('');
 
-    // Show/hide next level button
-    if (gameState.currentLevel < 2) {
-        elements.nextLevelBtn.style.display = 'block';
-    } else {
+    // Check if this is the final level (grand prize) or intermediate level
+    const isFinalLevel = gameState.currentLevel >= MAX_LEVEL;
+
+    if (isFinalLevel) {
+        // Grand Prize! Show claim button
+        elements.victoryIcon.textContent = '🏆';
+        elements.victoryTitle.textContent = gameState.currentLang === 'zh'
+            ? '恭喜通关!'
+            : 'Selamat!';
+        elements.victoryMessage.textContent = gameState.currentLang === 'zh'
+            ? '您已解锁豪华家具套装!'
+            : 'Anda telah membuka set furnitur mewah!';
         elements.nextLevelBtn.style.display = 'none';
+        elements.claimBtn.style.display = 'flex';
+    } else {
+        // Intermediate level - show next level button
+        elements.victoryIcon.textContent = '🎉';
+        const levelClearedText = gameState.currentLang === 'zh'
+            ? `第${gameState.currentLevel}关通过!`
+            : `Tingkat ${gameState.currentLevel} Selesai!`;
+        elements.victoryTitle.textContent = levelClearedText;
+
+        const nextTheme = LEVEL_CONFIGS[gameState.currentLevel + 1];
+        const nextThemeText = gameState.currentLang === 'zh'
+            ? `下一关: ${TRANSLATIONS.zh[nextTheme.themeKey]}`
+            : `Berikutnya: ${TRANSLATIONS.id[nextTheme.themeKey]}`;
+        elements.victoryMessage.textContent = nextThemeText;
+
+        elements.nextLevelBtn.style.display = 'flex';
+        elements.claimBtn.style.display = 'none';
     }
 
     elements.victoryModal.classList.add('active');
@@ -493,13 +592,16 @@ function startGame() {
 
     // Update UI with translations
     const levelText = gameState.currentLang === 'zh'
-        ? `第${gameState.currentLevel}关`
-        : `Tingkat ${gameState.currentLevel}`;
-    const levelName = gameState.currentLang === 'zh'
-        ? config.nameZh
-        : config.name;
+        ? TRANSLATIONS.zh[config.nameKey]
+        : TRANSLATIONS.id[config.nameKey];
+    const themeText = gameState.currentLang === 'zh'
+        ? TRANSLATIONS.zh[config.themeKey]
+        : TRANSLATIONS.id[config.themeKey];
     elements.currentLevel.textContent = levelText;
-    elements.levelSubtitle.textContent = levelName;
+    elements.levelSubtitle.textContent = themeText;
+
+    // Update journey step highlights
+    updateJourneyHighlight();
 
     // Generate tiles
     gameState.tiles = generateTiles(config);
@@ -523,10 +625,37 @@ function goToHome() {
     elements.gameoverModal.classList.remove('active');
     elements.claimModal.classList.remove('active');
     elements.startScreen.classList.add('active');
+    // Reset to level 1 when going home
+    gameState.currentLevel = 1;
+    updateJourneyHighlight();
+}
+
+function updateJourneyHighlight() {
+    // Update which journey step is highlighted based on current level
+    elements.journeySteps.forEach(step => {
+        const stepLevel = parseInt(step.dataset.level);
+        step.classList.remove('current', 'completed');
+
+        if (stepLevel === gameState.currentLevel) {
+            step.classList.add('current');
+            step.style.borderColor = 'var(--accent-gold)';
+            step.style.background = 'rgba(212, 165, 116, 0.2)';
+        } else if (stepLevel < gameState.currentLevel) {
+            step.classList.add('completed');
+            step.style.borderColor = 'var(--accent-green)';
+            step.style.background = 'rgba(45, 90, 39, 0.2)';
+        } else {
+            step.style.borderColor = 'var(--glass-border)';
+            step.style.background = 'var(--glass-bg)';
+        }
+    });
 }
 
 // ===== Event Listeners =====
-elements.startBtn.addEventListener('click', startGame);
+elements.startBtn.addEventListener('click', () => {
+    gameState.currentLevel = 1;
+    startGame();
+});
 
 elements.backBtn.addEventListener('click', goToHome);
 
@@ -542,7 +671,10 @@ elements.claimBtn.addEventListener('click', () => {
 
 elements.nextLevelBtn.addEventListener('click', () => {
     elements.victoryModal.classList.remove('active');
-    gameState.currentLevel = 2;
+    // Advance to next level (up to MAX_LEVEL)
+    if (gameState.currentLevel < MAX_LEVEL) {
+        gameState.currentLevel++;
+    }
     startGame();
 });
 

@@ -181,54 +181,66 @@ body::after {
     text-transform: uppercase;
 }
 
-/* Level Selection */
-.level-select {
+/* Level Journey Progress */
+.level-journey {
     display: flex;
-    gap: var(--space-md);
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
     animation: fadeInUp 0.8s ease-out 0.2s backwards;
+    flex-wrap: wrap;
+    max-width: 100%;
+    padding: 0 var(--space-sm);
 }
 
-.level-btn {
+.journey-step {
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
     backdrop-filter: blur(10px);
-    border-radius: var(--radius-lg);
-    padding: var(--space-lg);
-    cursor: pointer;
-    transition: all var(--transition-normal);
+    border-radius: var(--radius-md);
+    padding: var(--space-sm) var(--space-md);
+    text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--space-sm);
-    min-width: 140px;
+    gap: 2px;
+    min-width: 70px;
+    transition: all var(--transition-normal);
 }
 
-.level-btn:hover {
-    transform: translateY(-4px);
-    background: rgba(255, 255, 255, 0.12);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-}
-
-.level-btn.selected {
+.journey-step[data-level="1"] {
     border-color: var(--accent-gold);
     background: rgba(212, 165, 116, 0.15);
-    box-shadow: 0 0 30px rgba(212, 165, 116, 0.2);
 }
 
-.level-icon {
-    font-size: 36px;
+.journey-step.prize-step {
+    background: linear-gradient(135deg, rgba(212, 165, 116, 0.2) 0%, rgba(224, 123, 84, 0.2) 100%);
+    border-color: var(--accent-coral);
 }
 
-.level-name {
-    font-size: 18px;
+.step-icon {
+    font-size: 24px;
+    line-height: 1;
+}
+
+.step-name {
+    font-size: 11px;
     font-weight: 700;
     color: var(--text-primary);
 }
 
-.level-desc {
-    font-size: 12px;
+.step-theme {
+    font-size: 8px;
     color: var(--text-secondary);
+    white-space: nowrap;
 }
+
+.journey-arrow {
+    font-size: 16px;
+    color: var(--text-secondary);
+    opacity: 0.5;
+}
+
 
 /* Primary Button */
 .primary-btn {

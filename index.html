@@ -29,17 +29,29 @@
             <p class="tagline" data-i18n="tagline">Permainan Furnitur Kayu</p>
         </div>
 
-        <div class="level-select">
-            <button class="level-btn tutorial-btn" data-level="1">
-                <span class="level-icon">🌿</span>
-                <span class="level-name" data-i18n="tutorial">Tutorial</span>
-                <span class="level-desc" data-i18n="level1Desc">Tingkat 1 - Mudah</span>
-            </button>
-            <button class="level-btn challenge-btn" data-level="2">
-                <span class="level-icon">🔥</span>
-                <span class="level-name" data-i18n="challenge">Tantangan</span>
-                <span class="level-desc" data-i18n="level2Desc">Tingkat 2 - Sulit</span>
-            </button>
+        <div class="level-journey">
+            <div class="journey-step" data-level="1">
+                <div class="step-icon">🛋️</div>
+                <span class="step-name" data-i18n="level1Name">Tingkat 1</span>
+                <span class="step-theme" data-i18n="level1Desc">Ruang Tamu - Mudah</span>
+            </div>
+            <div class="journey-arrow">→</div>
+            <div class="journey-step" data-level="2">
+                <div class="step-icon">⛱️</div>
+                <span class="step-name" data-i18n="level2Name">Tingkat 2</span>
+                <span class="step-theme" data-i18n="level2Desc">Outdoor - Sedang</span>
+            </div>
+            <div class="journey-arrow">→</div>
+            <div class="journey-step" data-level="3">
+                <div class="step-icon">�️</div>
+                <span class="step-name" data-i18n="level3Name">Tingkat 3</span>
+                <span class="step-theme" data-i18n="level3Desc">Kamar Tidur - Sulit</span>
+            </div>
+            <div class="journey-arrow">→</div>
+            <div class="journey-step prize-step">
+                <div class="step-icon">🏆</div>
+                <span class="step-name" data-i18n="grandPrize">Hadiah Utama!</span>
+            </div>
         </div>
 
         <button id="start-btn" class="primary-btn">
@@ -87,7 +99,7 @@
         </footer>
     </div>
 
-    <!-- Victory Modal -->
+    <!-- Level Cleared / Victory Modal -->
     <div id="victory-modal" class="modal">
         <div class="modal-content victory">
             <div class="confetti-container">
@@ -97,18 +109,21 @@
                 <div class="confetti"></div>
                 <div class="confetti"></div>
             </div>
-            <div class="victory-icon">🏆</div>
-            <h2 data-i18n="congratulations">Selamat!</h2>
-            <p class="victory-message" data-i18n="victoryMessage">Anda telah membuka set furnitur mewah!</p>
+            <div class="victory-icon" id="victory-icon">�</div>
+            <h2 id="victory-title">Selamat!</h2>
+            <p class="victory-message" id="victory-message">Tingkat 1 Selesai!</p>
             <div class="furniture-showcase" id="furniture-showcase">
                 <!-- Unlocked furniture will show here -->
             </div>
             <div class="modal-buttons">
-                <button id="claim-btn" class="primary-btn">
+                <button id="next-level-btn" class="primary-btn">
+                    <span data-i18n="nextLevel">Level Berikutnya</span>
+                    <span class="btn-icon">→</span>
+                </button>
+                <button id="claim-btn" class="primary-btn" style="display:none;">
                     <span data-i18n="claimPrize">Klaim Hadiah</span>
                     <span class="btn-icon">🎁</span>
                 </button>
-                <button id="next-level-btn" class="secondary-btn" data-i18n="nextLevel">Tingkat Berikutnya</button>
             </div>
         </div>
     </div>
