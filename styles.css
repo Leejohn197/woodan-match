@@ -66,7 +66,7 @@ body {
     /* 30% white overlay on wood texture - clean, light beige aesthetic */
     background-image:
         linear-gradient(rgba(255, 255, 255, 0.30), rgba(255, 255, 255, 0.30)),
-        url('assets/images/background.png');
+        url('assets/images/background.jpg');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -395,6 +395,10 @@ body::after {
         inset 0 1px 0 rgba(255, 255, 255, 0.8);
     border: 1px solid rgba(139, 90, 43, 0.12);
     user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    /* Remove tap highlight on iOS */
+    touch-action: manipulation;
+    /* Faster tap response */
 }
 
 .tile::before {
@@ -448,6 +452,8 @@ body::after {
     height: 45px;
     object-fit: contain;
     pointer-events: none;
+    /* Remove baked-in shadow from PNG images */
+    filter: drop-shadow(0 0 0 transparent) brightness(1.05) contrast(1.1);
 }
 
 .tile-name {
@@ -595,8 +601,10 @@ body::after {
 
 .progress-text {
     text-align: center;
-    font-size: 12px;
+    font-size: 14px;
+    /* Increased from 12px for mobile readability */
     color: var(--text-secondary);
+    font-weight: 500;
 }
 
 /* ===== Modals ===== */

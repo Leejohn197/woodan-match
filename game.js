@@ -55,7 +55,16 @@ const TRANSLATIONS = {
         'dresser': 'Meja Rias',
         'nightstand': 'Meja Samping',
         'mirror': 'Cermin',
-        'desk': 'Meja Kerja'
+        'desk': 'Meja Kerja',
+        // Additional furniture (actually used in game)
+        'dining-chair': 'Kursi Makan',
+        'table': 'Meja',
+        'stool': 'Bangku',
+        'pattern1': 'Motif 1',
+        'pattern2': 'Motif 2',
+        'lounge-chair': 'Kursi Santai',
+        'ladder-chair': 'Kursi Tangga',
+        'round-table': 'Meja Bundar'
     },
     zh: {
         tagline: '木质家具消消乐',
@@ -106,7 +115,16 @@ const TRANSLATIONS = {
         'dresser': '梳妆台',
         'nightstand': '床头柜',
         'mirror': '镜子',
-        'desk': '书桌'
+        'desk': '书桌',
+        // Additional furniture (actually used in game)
+        'dining-chair': '餐椅',
+        'table': '餐桌',
+        'stool': '凳子',
+        'pattern1': '图案一',
+        'pattern2': '图案二',
+        'lounge-chair': '休闲椅',
+        'ladder-chair': '梯背椅',
+        'round-table': '圆桌'
     }
 };
 
@@ -200,9 +218,47 @@ const gameState = {
 let audioContext = null;
 
 function initAudio() {
-    if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    try {
+        if (!audioContext) {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContextClass) {
+                console.warn('Web Audio API not supported in this browser');
+                return false;
+            }
+            audioContext = new AudioContextClass();
+        }
+        return true;
+    } catch (e) {
+        console.error('Audio initialization failed:', e);
+        return false;
     }
+}
+
+// ===== Haptic Feedback for Mobile =====
+function vibrate(pattern) {
+    if ('vibrate' in navigator) {
+        try {
+            navigator.vibrate(pattern);
+        } catch (e) {
+            // Vibration not supported or failed silently
+        }
+    }
+}
+
+function hapticTap() {
+    vibrate(10); // Light tap - 10ms
+}
+
+function hapticMatch() {
+    vibrate([30, 50, 30]); // Double vibration for match
+}
+
+function hapticGameOver() {
+    vibrate(200); // Long vibration for game over
+}
+
+function hapticVictory() {
+    vibrate([50, 30, 50, 30, 100]); // Celebratory pattern
 }
 
 function playWoodKnock() {
@@ -407,34 +463,69 @@ function checkBlockedTiles() {
     });
 }
 
-function renderTiles() {
-    elements.tileContainer.innerHTML = '';
+function renderTiles(isInitialRender = false) {
+    if (isInitialRender) {
+        // Full render only on game start
+        elements.tileContainer.innerHTML = '';
 
-    // Sort by layer (lower layers first, so they appear behind)
-    const sortedTiles = [...gameState.tiles].sort((a, b) => a.layer - b.layer);
+        const sortedTiles = [...gameState.tiles].sort((a, b) => a.layer - b.layer);
 
-    sortedTiles.forEach((tile, index) => {
-        const tileEl = document.createElement('div');
-        tileEl.className = `tile ${tile.blocked ? 'blocked' : ''} entering`;
-        tileEl.dataset.id = tile.id;
-        tileEl.style.left = `${tile.x}px`;
-        tileEl.style.top = `${tile.y}px`;
-        tileEl.style.zIndex = tile.layer * 10 + index;
-        tileEl.style.animationDelay = `${index * 0.02}s`;
+        sortedTiles.forEach((tile, index) => {
+            const tileEl = document.createElement('div');
+            tileEl.className = `tile ${tile.blocked ? 'blocked' : ''} entering`;
+            tileEl.dataset.id = tile.id;
+            tileEl.style.left = `${tile.x}px`;
+            tileEl.style.top = `${tile.y}px`;
+            tileEl.style.zIndex = tile.layer * 10 + index;
+            tileEl.style.animationDelay = `${index * 0.02}s`;
 
-        tileEl.innerHTML = `
-            <img src="${tile.image}" class="tile-image" alt="${getFurnitureName(tile.type)}">
-            <span class="tile-name">${getFurnitureName(tile.type)}</span>
-        `;
+            tileEl.innerHTML = `
+                <img src="${tile.image}" class="tile-image" alt="${getFurnitureName(tile.type)}">
+                <span class="tile-name">${getFurnitureName(tile.type)}</span>
+            `;
 
-        if (!tile.blocked) {
-            tileEl.addEventListener('click', () => handleTileClick(tile));
-        }
+            if (!tile.blocked) {
+                tileEl.addEventListener('click', () => handleTileClick(tile));
+            }
 
-        elements.tileContainer.appendChild(tileEl);
-    });
+            elements.tileContainer.appendChild(tileEl);
+        });
+    } else {
+        // Update only: refresh blocked states without re-creating tiles
+        gameState.tiles.forEach(tile => {
+            const tileEl = elements.tileContainer.querySelector(`[data-id="${tile.id}"]`);
+            if (tileEl) {
+                const wasBlocked = tileEl.classList.contains('blocked');
+                const isNowBlocked = tile.blocked;
+
+                if (wasBlocked && !isNowBlocked) {
+                    // Tile became unblocked - update class and add click listener
+                    tileEl.classList.remove('blocked');
+                    tileEl.addEventListener('click', () => handleTileClick(tile));
+                } else if (!wasBlocked && isNowBlocked) {
+                    // Tile became blocked
+                    tileEl.classList.add('blocked');
+                }
+            }
+        });
+    }
 
     updateProgress();
+}
+
+// Remove a single tile from DOM with animation
+function removeTileFromDOM(tileId) {
+    const tileEl = elements.tileContainer.querySelector(`[data-id="${tileId}"]`);
+    if (tileEl) {
+        tileEl.classList.add('exiting');
+        tileEl.style.pointerEvents = 'none';
+        // Remove from DOM after animation
+        setTimeout(() => {
+            if (tileEl.parentNode) {
+                tileEl.parentNode.removeChild(tileEl);
+            }
+        }, 300);
+    }
 }
 
 function renderSlots() {
@@ -473,19 +564,24 @@ function handleTileClick(tile) {
 
     initAudio();
     playWoodKnock();
+    hapticTap();  // Mobile haptic feedback
+
+    // Remove tile from DOM with animation
+    removeTileFromDOM(tile.id);
 
     // Add tile to slots
     gameState.slots.push(tile);
 
-    // Remove tile from board
+    // Remove tile from game state
     gameState.tiles = gameState.tiles.filter(t => t.id !== tile.id);
 
     // Update blocked status
     checkBlockedTiles();
 
-    // Render updates
-    renderTiles();
+    // Update blocked tiles only (no full re-render)
+    renderTiles(false);
     renderSlots();
+    updateProgress();
 
     // Check for matches (3 of same type)
     checkMatches();
@@ -529,6 +625,7 @@ function checkMatches() {
             });
 
             playMatchSound();
+            hapticMatch();  // Mobile haptic feedback
 
             // Wait for animation to complete (300ms) before removing from data
             setTimeout(() => {
@@ -559,6 +656,7 @@ function victory() {
     gameState.isVictory = true;
 
     playVictorySound();
+    hapticVictory();  // Mobile haptic feedback
 
     const config = LEVEL_CONFIGS[gameState.currentLevel];
     const themeFurniture = FURNITURE_THEMES[config.theme];
@@ -607,6 +705,7 @@ function victory() {
 function gameOver() {
     if (gameState.isGameOver) return;
     gameState.isGameOver = true;
+    hapticGameOver();  // Mobile haptic feedback
 
     elements.gameoverModal.classList.add('active');
 }
@@ -641,8 +740,8 @@ function startGame() {
     // Check blocked tiles
     checkBlockedTiles();
 
-    // Render
-    renderTiles();
+    // Render with initial animation
+    renderTiles(true);
     renderSlots();
 
     // Switch screens
@@ -783,6 +882,4 @@ function initLanguage() {
 // ===== Initialize =====
 initLanguage();
 console.log('🪵 Wood Match Game Loaded');
-console.log('Furniture types:', FURNITURE_TYPES.map(f => f.icon).join(' '));
 console.log('Languages: 🇮🇩 Indonesia | 🇨🇳 中文');
-
