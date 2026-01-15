@@ -37,7 +37,31 @@ const TRANSLATIONS = {
     'pattern2': 'Motif 2',
     'lounge-chair': 'Kursi Santai',
     'ladder-chair': 'Kursi Tangga',
-    'round-table': 'Meja Bundar'
+    'round-table': 'Meja Bundar',
+    // Gambler mechanism translations
+    takeReward: 'Ambil Hadiah',
+    riskIt: 'Tantang Level Berikutnya',
+    consolationPrize: 'Hadiah Hiburan',
+    consolationDesc: 'Stiker merek / brosur digital',
+    smallPrize: 'Hadiah Kecil',
+    smallPrizeDesc: 'Kopi gratis / air mineral',
+    spinWheel: 'Roda Keberuntungan',
+    spinWheelDesc: 'Furnitur kayu solid / diskon besar',
+    spinNow: 'Putar Sekarang!',
+    cooldownWarning: 'Istirahat Dulu',
+    cooldownMessage: 'Anda baru saja bermain! Silakan tunggu {seconds} detik lagi',
+    spinning: 'Memutar...',
+    prizeFurniture: 'Furnitur Kayu',
+    prizeDiscount: 'Diskon 50%',
+    prizeGift: 'Hadiah Menarik',
+    prizeCoupon: 'Kupon Belanja',
+    youWon: 'Anda Menang!',
+    giveUpReward: 'Lepaskan hadiah saat ini untuk kesempatan menang besar!',
+    claimSmallPrize: 'Klaim Hadiah Kecil',
+    orContinue: 'atau lanjutkan tantangan',
+    prizeWon: 'Didapat',
+    allPrizesWon: 'Semua hadiah sudah diklaim!',
+    noPrizesLeft: 'Tidak ada hadiah tersisa'
   },
   zh: {
     tagline: '木质家具消消乐',
@@ -74,7 +98,31 @@ const TRANSLATIONS = {
     'pattern2': '图案二',
     'lounge-chair': '休闲椅',
     'ladder-chair': '梯背椅',
-    'round-table': '圆桌'
+    'round-table': '圆桌',
+    // Gambler mechanism translations
+    takeReward: '领取奖励',
+    riskIt: '挑战下一关',
+    consolationPrize: '安慰奖',
+    consolationDesc: '品牌贴纸/电子宣传册',
+    smallPrize: '小奖品',
+    smallPrizeDesc: '免费咖啡/矿泉水',
+    spinWheel: '幸运转盘',
+    spinWheelDesc: '实木家具/大额折扣',
+    spinNow: '立即抽奖！',
+    cooldownWarning: '休息提示',
+    cooldownMessage: '您刚刚已经挑战过了！请休息 {seconds} 秒再来',
+    spinning: '抽奖中...',
+    prizeFurniture: '实木家具',
+    prizeDiscount: '五折优惠',
+    prizeGift: '精美礼品',
+    prizeCoupon: '优惠券',
+    youWon: '恭喜中奖！',
+    giveUpReward: '放弃当前奖励，有机会赢取大奖！',
+    claimSmallPrize: '领取小奖品',
+    orContinue: '或继续挑战',
+    prizeWon: '已获得',
+    allPrizesWon: '所有奖品已领取！',
+    noPrizesLeft: '没有剩余奖品'
   }
 };
 
@@ -118,7 +166,8 @@ const LEVEL_CONFIGS = {
     layers: 2,
     gridWidth: 4,
     gridHeight: 3,
-    hasPrize: false
+    rewardType: 'consolation', // 安慰奖
+    timeLimit: 30
   },
   2: {
     theme: 'outdoor',
@@ -130,7 +179,8 @@ const LEVEL_CONFIGS = {
     layers: 3,
     gridWidth: 5,
     gridHeight: 4,
-    hasPrize: false
+    rewardType: 'small', // 小奖品
+    timeLimit: 60
   },
   3: {
     theme: 'bedroom',
@@ -142,9 +192,18 @@ const LEVEL_CONFIGS = {
     layers: 4,
     gridWidth: 6,
     gridHeight: 5,
-    hasPrize: true
+    rewardType: 'spinWheel', // 幸运转盘
+    timeLimit: 90
   }
 };
+
+// Spin wheel prizes configuration
+const WHEEL_PRIZES = [
+  { id: 'furniture', weight: 10, color: '#CD853F' },
+  { id: 'discount', weight: 25, color: '#20B2AA' },
+  { id: 'gift', weight: 30, color: '#DEB887' },
+  { id: 'coupon', weight: 35, color: '#8B5A2B' }
+];
 
 const MAX_LEVEL = 3;
 
@@ -309,14 +368,36 @@ export default function Game() {
   const [exitingTiles, setExitingTiles] = useState(new Set());
   const [removingSlots, setRemovingSlots] = useState(new Set());
 
+  // Gambler mechanism states
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [wheelRotation, setWheelRotation] = useState(0);
+  const [wheelResult, setWheelResult] = useState(null);
+  const [claimedRewardLevel, setClaimedRewardLevel] = useState(null);
+  const [wonPrizes, setWonPrizes] = useState([]);
+
   const t = useCallback((key) => TRANSLATIONS[currentLang][key] || key, [currentLang]);
   const getFurnitureName = useCallback((id) => TRANSLATIONS[currentLang][id] || id, [currentLang]);
 
-  // Load saved language preference
+  // Load saved language preference and won prizes
   useEffect(() => {
     const savedLang = localStorage.getItem('woodmatch_lang');
     if (savedLang && (savedLang === 'id' || savedLang === 'zh')) {
       setCurrentLang(savedLang);
+    }
+
+    // Load won prizes from localStorage
+    const savedWonPrizes = localStorage.getItem('woodmatch_wonPrizes');
+    if (savedWonPrizes) {
+      try {
+        const parsed = JSON.parse(savedWonPrizes);
+        if (Array.isArray(parsed)) {
+          setWonPrizes(parsed);
+        }
+      } catch (e) {
+        // Invalid JSON, reset
+        localStorage.removeItem('woodmatch_wonPrizes');
+      }
     }
   }, []);
 
@@ -394,8 +475,35 @@ export default function Game() {
     });
   }, []);
 
+  // Check cooldown before starting game
+  const checkCooldown = useCallback(() => {
+    const lastPlayed = localStorage.getItem('woodmatch_lastPlayed');
+    if (lastPlayed) {
+      const elapsed = Date.now() - parseInt(lastPlayed);
+      const cooldown = 10000; // 10 seconds cooldown
+      if (elapsed < cooldown) {
+        return Math.ceil((cooldown - elapsed) / 1000);
+      }
+    }
+    return 0;
+  }, []);
+
+  // Record play session
+  const recordPlaySession = useCallback(() => {
+    localStorage.setItem('woodmatch_hasPlayed', 'true');
+    localStorage.setItem('woodmatch_lastPlayed', Date.now().toString());
+  }, []);
+
   // Start game
   const startGame = useCallback(() => {
+    // Check cooldown for anti-abuse
+    const remaining = checkCooldown();
+    if (remaining > 0) {
+      setCooldownRemaining(remaining);
+      setActiveModal('cooldown');
+      return;
+    }
+
     const config = LEVEL_CONFIGS[currentLevel];
     const newTiles = generateTiles(config);
     const checkedTiles = checkBlockedTiles(newTiles);
@@ -407,8 +515,13 @@ export default function Game() {
     setActiveModal(null);
     setExitingTiles(new Set());
     setRemovingSlots(new Set());
+    setWheelResult(null);
+    setIsSpinning(false);
     setCurrentScreen('game');
-  }, [currentLevel, generateTiles, checkBlockedTiles]);
+
+    // Record this play session
+    recordPlaySession();
+  }, [currentLevel, generateTiles, checkBlockedTiles, checkCooldown, recordPlaySession]);
 
   // Handle tile click
   const handleTileClick = useCallback((tile) => {
@@ -509,6 +622,85 @@ export default function Game() {
     startGame();
   }, [startGame]);
 
+  // Handle claiming current level reward
+  const claimCurrentReward = useCallback(() => {
+    setClaimedRewardLevel(currentLevel);
+    setActiveModal('claimReward');
+  }, [currentLevel]);
+
+  // Handle risking for next level (gambler choice)
+  const riskForNextLevel = useCallback(() => {
+    setActiveModal(null);
+    nextLevel();
+  }, [nextLevel]);
+
+  // Spin wheel handler with deduplication
+  const spinWheel = useCallback(() => {
+    if (isSpinning) return;
+
+    // Filter out already won prizes
+    const availablePrizes = WHEEL_PRIZES.filter(p => !wonPrizes.includes(p.id));
+
+    // If no prizes left, don't spin
+    if (availablePrizes.length === 0) return;
+
+    setIsSpinning(true);
+
+    // Weighted random selection from available prizes only
+    const totalWeight = availablePrizes.reduce((sum, p) => sum + p.weight, 0);
+    let random = Math.random() * totalWeight;
+    let selectedPrize = availablePrizes[0];
+
+    for (const prize of availablePrizes) {
+      random -= prize.weight;
+      if (random <= 0) {
+        selectedPrize = prize;
+        break;
+      }
+    }
+
+    // Calculate rotation (5+ full spins + landing position)
+    // Use the index from original WHEEL_PRIZES for correct visual position
+    const prizeIndex = WHEEL_PRIZES.findIndex(p => p.id === selectedPrize.id);
+    const segmentAngle = 360 / WHEEL_PRIZES.length;
+    const targetAngle = 360 * 5 + (360 - prizeIndex * segmentAngle - segmentAngle / 2);
+
+    setWheelRotation(targetAngle);
+
+    setTimeout(() => {
+      setIsSpinning(false);
+      setWheelResult(selectedPrize.id);
+
+      // Save won prize to localStorage
+      const newWonPrizes = [...wonPrizes, selectedPrize.id];
+      setWonPrizes(newWonPrizes);
+      localStorage.setItem('woodmatch_wonPrizes', JSON.stringify(newWonPrizes));
+    }, 4000);
+  }, [isSpinning, wonPrizes]);
+
+  // Dismiss cooldown modal
+  const dismissCooldown = useCallback(() => {
+    setActiveModal(null);
+    setCooldownRemaining(0);
+  }, []);
+
+  // Cooldown timer effect
+  useEffect(() => {
+    if (activeModal === 'cooldown' && cooldownRemaining > 0) {
+      const timer = setInterval(() => {
+        setCooldownRemaining(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            setActiveModal(null);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [activeModal, cooldownRemaining]);
+
   const config = LEVEL_CONFIGS[currentLevel];
   const totalTiles = config.types * config.tilesPerType;
   const progress = ((totalTiles - tiles.length) / totalTiles) * 100;
@@ -525,8 +717,8 @@ export default function Game() {
                 key={lang}
                 onClick={() => changeLanguage(lang)}
                 className={`${styles.glass} rounded-xl px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${currentLang === lang
-                    ? 'bg-accent-gold/20 border-accent-gold text-wood-dark'
-                    : 'text-wood-dark/75 hover:text-wood-dark'
+                  ? 'bg-accent-gold/20 border-accent-gold text-wood-dark'
+                  : 'text-wood-dark/75 hover:text-wood-dark'
                   }`}
               >
                 {lang === 'id' ? '🇮🇩 ID' : '🇨🇳 中文'}
@@ -662,7 +854,7 @@ export default function Game() {
         </div>
       )}
 
-      {/* Victory Modal */}
+      {/* Victory Modal - Gambler Mechanism */}
       {activeModal === 'victory' && (
         <div className="fixed inset-0 bg-wood-dark/60 backdrop-blur-sm z-[2000] flex justify-center items-center p-4 animate-[fade-in_0.3s_ease-out]">
           <div className={`${styles.modal} rounded-3xl p-8 text-center max-w-[360px] w-full relative overflow-hidden animate-modal-slide-in`}>
@@ -676,38 +868,162 @@ export default function Game() {
                 />
               ))}
             </div>
-            <div className="text-6xl mb-4 animate-icon-bounce">
-              {currentLevel >= MAX_LEVEL ? '🏆' : '🎉'}
-            </div>
+            <div className="text-6xl mb-4 animate-icon-bounce">🎉</div>
             <h2 className={`text-3xl mb-2 ${styles.textGradient} font-bold`}>
-              {currentLevel >= MAX_LEVEL
-                ? t('congratulations')
-                : t('levelCleared').replace('{level}', currentLevel)}
+              {t('levelCleared').replace('{level}', currentLevel)}
             </h2>
-            <p className="text-wood-dark/75 mb-6 leading-relaxed">
-              {currentLevel >= MAX_LEVEL
-                ? t('victoryMessage')
-                : `${t('nextLevel')}: ${t(LEVEL_CONFIGS[currentLevel + 1]?.themeKey || '')}`}
-            </p>
-            <div className="flex flex-col gap-2">
-              {currentLevel >= MAX_LEVEL ? (
-                <button
-                  onClick={() => setActiveModal('claim')}
-                  className={`${styles.btnPrimary} rounded-3xl px-6 py-4 text-lg font-bold text-white flex items-center justify-center gap-2 cursor-pointer transition-all`}
-                >
-                  <span>{t('claimPrize')}</span>
-                  <span>🎁</span>
-                </button>
-              ) : (
-                <button
-                  onClick={nextLevel}
-                  className={`${styles.btnPrimary} rounded-3xl px-6 py-4 text-lg font-bold text-white flex items-center justify-center gap-2 cursor-pointer transition-all`}
-                >
-                  <span>{t('nextLevel')}</span>
-                  <span>→</span>
-                </button>
-              )}
-            </div>
+
+            {/* Level 1 & 2: Take Reward or Risk It */}
+            {currentLevel < MAX_LEVEL && (
+              <>
+                <p className="text-wood-dark/75 mb-4 leading-relaxed">
+                  {t('giveUpReward')}
+                </p>
+
+                {/* Current Level Reward Display */}
+                <div className={`${styles.glass} rounded-xl p-4 mb-4`}>
+                  <div className="text-3xl mb-2">
+                    {currentLevel === 1 ? '📋' : '☕'}
+                  </div>
+                  <p className="font-bold text-wood-dark">
+                    {currentLevel === 1 ? t('consolationPrize') : t('smallPrize')}
+                  </p>
+                  <p className="text-sm text-wood-dark/60">
+                    {currentLevel === 1 ? t('consolationDesc') : t('smallPrizeDesc')}
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  {/* Take Reward Button */}
+                  <button
+                    onClick={claimCurrentReward}
+                    className="bg-gradient-to-br from-accent-teal to-accent-green rounded-3xl px-6 py-3 text-base font-bold text-white flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.02]"
+                  >
+                    <span>{t('takeReward')}</span>
+                    <span>🎁</span>
+                  </button>
+
+                  {/* Risk It Button */}
+                  <button
+                    onClick={riskForNextLevel}
+                    className={`${styles.btnPrimary} rounded-3xl px-6 py-4 text-lg font-bold text-white flex items-center justify-center gap-2 cursor-pointer transition-all`}
+                  >
+                    <span>{t('riskIt')}</span>
+                    <span>🎲</span>
+                  </button>
+
+                  <p className="text-xs text-wood-dark/50 mt-2">
+                    {t('orContinue')}
+                  </p>
+                </div>
+              </>
+            )}
+
+            {/* Level 3: Spin Wheel */}
+            {currentLevel >= MAX_LEVEL && (
+              <>
+                <p className="text-wood-dark/75 mb-4 leading-relaxed">
+                  {t('spinWheelDesc')}
+                </p>
+
+                {/* Spin Wheel */}
+                <div className="relative w-64 h-64 mx-auto mb-6">
+                  {/* Wheel Container */}
+                  <div
+                    className="w-full h-full rounded-full overflow-hidden shadow-lg transition-transform duration-[4s] ease-out relative"
+                    style={{
+                      transform: `rotate(${wheelRotation}deg)`,
+                      background: `conic-gradient(
+                        ${wonPrizes.includes(WHEEL_PRIZES[0].id) ? '#9CA3AF' : WHEEL_PRIZES[0].color} 0deg 90deg,
+                        ${wonPrizes.includes(WHEEL_PRIZES[1].id) ? '#9CA3AF' : WHEEL_PRIZES[1].color} 90deg 180deg,
+                        ${wonPrizes.includes(WHEEL_PRIZES[2].id) ? '#9CA3AF' : WHEEL_PRIZES[2].color} 180deg 270deg,
+                        ${wonPrizes.includes(WHEEL_PRIZES[3].id) ? '#9CA3AF' : WHEEL_PRIZES[3].color} 270deg 360deg
+                      )`
+                    }}
+                  >
+                    {/* Prize Labels with Won Status */}
+                    {WHEEL_PRIZES.map((prize, idx) => {
+                      const isWon = wonPrizes.includes(prize.id);
+                      return (
+                        <div
+                          key={prize.id}
+                          className="absolute w-1/2 h-1/2 flex items-center justify-center"
+                          style={{
+                            transformOrigin: '100% 100%',
+                            transform: `rotate(${idx * 90 + 45}deg)`,
+                            left: 0,
+                            top: 0
+                          }}
+                        >
+                          <div
+                            className="flex flex-col items-center gap-0.5"
+                            style={{ transform: `rotate(${-idx * 90 - 45}deg)` }}
+                          >
+                            <span className={`font-bold text-xs text-center leading-tight drop-shadow-md ${isWon ? 'text-gray-300 line-through' : 'text-white'}`}>
+                              {t(`prize${prize.id.charAt(0).toUpperCase() + prize.id.slice(1)}`)}
+                            </span>
+                            {isWon && (
+                              <span className="text-[10px] font-bold text-red-200 bg-red-600/60 px-1.5 py-0.5 rounded">
+                                ✓ {t('prizeWon')}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Center Circle */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center z-10">
+                    <span className="text-2xl">🎯</span>
+                  </div>
+
+                  {/* Pointer */}
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 z-20">
+                    <div className="w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-t-[20px] border-t-wood-dark"></div>
+                  </div>
+                </div>
+
+                {/* Spin Result or Button */}
+                {wheelResult ? (
+                  <div className="animate-fade-in-up">
+                    <h3 className={`text-2xl font-bold ${styles.textGradient} mb-2`}>
+                      {t('youWon')}
+                    </h3>
+                    <div className={`${styles.glass} rounded-xl p-4 mb-4`}>
+                      <p className="text-xl font-bold text-wood-dark">
+                        {t(`prize${wheelResult.charAt(0).toUpperCase() + wheelResult.slice(1)}`)}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setActiveModal('claim')}
+                      className={`${styles.btnPrimary} rounded-3xl px-6 py-4 text-lg font-bold text-white cursor-pointer transition-all`}
+                    >
+                      {t('claimPrize')} 🎁
+                    </button>
+                  </div>
+                ) : wonPrizes.length >= WHEEL_PRIZES.length ? (
+                  /* All prizes won */
+                  <div className="animate-fade-in-up">
+                    <p className="text-wood-dark/75 mb-4">{t('allPrizesWon')}</p>
+                    <button
+                      onClick={goToHome}
+                      className={`${styles.btnPrimary} rounded-3xl px-6 py-4 text-lg font-bold text-white cursor-pointer transition-all`}
+                    >
+                      {t('mainMenu')}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={spinWheel}
+                    disabled={isSpinning}
+                    className={`${styles.btnPrimary} rounded-3xl px-8 py-4 text-xl font-bold text-white cursor-pointer transition-all disabled:opacity-70 disabled:cursor-not-allowed`}
+                  >
+                    {isSpinning ? t('spinning') : t('spinNow')}
+                  </button>
+                )}
+              </>
+            )}
           </div>
         </div>
       )}
@@ -738,17 +1054,71 @@ export default function Game() {
         </div>
       )}
 
-      {/* Claim Modal */}
+      {/* Cooldown Warning Modal */}
+      {activeModal === 'cooldown' && (
+        <div className="fixed inset-0 bg-wood-dark/60 backdrop-blur-sm z-[2000] flex justify-center items-center p-4 animate-[fade-in_0.3s_ease-out]">
+          <div className={`${styles.modal} rounded-3xl p-8 text-center max-w-[360px] w-full animate-modal-slide-in`}>
+            <div className="text-6xl mb-4 animate-icon-bounce">⏰</div>
+            <h2 className={`text-3xl mb-2 ${styles.textGradient} font-bold`}>{t('cooldownWarning')}</h2>
+            <p className="text-wood-dark/75 mb-6 leading-relaxed">
+              {t('cooldownMessage').replace('{seconds}', cooldownRemaining)}
+            </p>
+            <div className="text-5xl font-bold text-wood-golden mb-6">
+              {cooldownRemaining}s
+            </div>
+            <button
+              onClick={dismissCooldown}
+              className="bg-transparent border-2 border-[rgba(139,90,43,0.15)] rounded-3xl px-6 py-3 text-base font-semibold text-wood-dark/75 cursor-pointer hover:border-wood-dark hover:text-wood-dark transition-all"
+            >
+              {t('mainMenu')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Claimed Reward Modal (for Level 1 & 2 rewards) */}
+      {activeModal === 'claimReward' && (
+        <div className="fixed inset-0 bg-wood-dark/60 backdrop-blur-sm z-[2000] flex justify-center items-center p-4 animate-[fade-in_0.3s_ease-out]">
+          <div className={`${styles.modal} rounded-3xl p-8 text-center max-w-[360px] w-full animate-modal-slide-in`}>
+            <div className="text-6xl mb-4 animate-icon-bounce">
+              {claimedRewardLevel === 1 ? '📋' : '☕'}
+            </div>
+            <h2 className={`text-3xl mb-2 ${styles.textGradient} font-bold`}>{t('yourPrize')}</h2>
+            <p className="text-wood-dark/75 mb-4 leading-relaxed">{t('showScreen')}</p>
+            <div className="my-6">
+              <div className="bg-white text-wood-dark p-6 rounded-xl inline-block shadow-lg">
+                <p className="text-lg font-bold mb-2">
+                  {claimedRewardLevel === 1 ? t('consolationPrize') : t('smallPrize')}
+                </p>
+                <p className="text-2xl font-bold tracking-wider text-wood-golden">
+                  KODE: {claimedRewardLevel === 1 ? 'WOOD-STICKER' : 'WOOD-COFFEE'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={goToHome}
+              className={`${styles.btnPrimary} rounded-3xl px-6 py-4 text-lg font-bold text-white cursor-pointer transition-all`}
+            >
+              {t('close')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Claim Modal (for Spin Wheel prizes) */}
       {activeModal === 'claim' && (
         <div className="fixed inset-0 bg-wood-dark/60 backdrop-blur-sm z-[2000] flex justify-center items-center p-4 animate-[fade-in_0.3s_ease-out]">
           <div className={`${styles.modal} rounded-3xl p-8 text-center max-w-[360px] w-full animate-modal-slide-in`}>
-            <div className="text-6xl mb-4 animate-icon-bounce">🎉</div>
+            <div className="text-6xl mb-4 animate-icon-bounce">🏆</div>
             <h2 className={`text-3xl mb-2 ${styles.textGradient} font-bold`}>{t('yourPrize')}</h2>
             <p className="text-wood-dark/75 mb-6 leading-relaxed">{t('showScreen')}</p>
             <div className="my-6">
               <div className="bg-white text-wood-dark p-6 rounded-xl inline-block shadow-lg">
-                <span className="text-5xl block mb-2">📱</span>
-                <p className="text-lg font-bold tracking-wider">KODE: WOOD2024</p>
+                <span className="text-5xl block mb-2">🎁</span>
+                <p className="text-lg font-bold mb-1">
+                  {wheelResult ? t(`prize${wheelResult.charAt(0).toUpperCase() + wheelResult.slice(1)}`) : t('grandPrize')}
+                </p>
+                <p className="text-2xl font-bold tracking-wider text-wood-golden">KODE: WOOD2024</p>
               </div>
             </div>
             <button
