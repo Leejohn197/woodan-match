@@ -379,14 +379,28 @@ export default function Game() {
   const t = useCallback((key) => TRANSLATIONS[currentLang][key] || key, [currentLang]);
   const getFurnitureName = useCallback((id) => TRANSLATIONS[currentLang][id] || id, [currentLang]);
 
-  // Load saved language preference and won prizes
+  // Load saved language preference and won prizes (with daily reset)
   useEffect(() => {
     const savedLang = localStorage.getItem('woodmatch_lang');
     if (savedLang && (savedLang === 'id' || savedLang === 'zh')) {
       setCurrentLang(savedLang);
     }
 
-    // Load won prizes from localStorage
+    // Get today's date string (YYYY-MM-DD format)
+    const today = new Date().toISOString().split('T')[0];
+    const savedDate = localStorage.getItem('woodmatch_prizeDate');
+
+    // Daily reset: if the date has changed, clear won prizes
+    if (savedDate !== today) {
+      localStorage.setItem('woodmatch_prizeDate', today);
+      localStorage.removeItem('woodmatch_wonPrizes');
+      localStorage.removeItem('woodmatch_lastPlayed');
+      localStorage.removeItem('woodmatch_hasPlayed');
+      setWonPrizes([]);
+      return;
+    }
+
+    // Load won prizes from localStorage (same day)
     const savedWonPrizes = localStorage.getItem('woodmatch_wonPrizes');
     if (savedWonPrizes) {
       try {
@@ -659,11 +673,16 @@ export default function Game() {
       }
     }
 
-    // Calculate rotation (5+ full spins + landing position)
-    // Use the index from original WHEEL_PRIZES for correct visual position
+    // Calculate wheel rotation (wheel rotates to bring prize to fixed pointer at top)
+    // Pointer is fixed at top (0 degrees / 12 o'clock position)
+    // Prize segments: Prize 0 at 0-90deg, Prize 1 at 90-180deg, Prize 2 at 180-270deg, Prize 3 at 270-360deg
+    // To land on a prize, we rotate the wheel so the prize center aligns with the pointer
     const prizeIndex = WHEEL_PRIZES.findIndex(p => p.id === selectedPrize.id);
-    const segmentAngle = 360 / WHEEL_PRIZES.length;
-    const targetAngle = 360 * 5 + (360 - prizeIndex * segmentAngle - segmentAngle / 2);
+    const segmentAngle = 360 / WHEEL_PRIZES.length; // 90 degrees per segment
+    // Prize center positions: Prize 0 at 45deg, Prize 1 at 135deg, Prize 2 at 225deg, Prize 3 at 315deg
+    const prizeCenter = prizeIndex * segmentAngle + segmentAngle / 2;
+    // Rotate wheel backwards (negative) to bring prize to top, plus 5 full spins
+    const targetAngle = -(360 * 5 + prizeCenter);
 
     setWheelRotation(targetAngle);
 
@@ -926,61 +945,109 @@ export default function Game() {
                   {t('spinWheelDesc')}
                 </p>
 
-                {/* Spin Wheel */}
-                <div className="relative w-64 h-64 mx-auto mb-6">
-                  {/* Wheel Container */}
+                {/* Spin Wheel - New Circular Layout with Absolute Positioning */}
+                <div className="relative w-72 h-72 mx-auto mb-6">
+                  {/* Fixed Pointer at Top (Knife/Indicator) */}
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-30">
+                    <div className="w-0 h-0 border-l-[16px] border-l-transparent border-r-[16px] border-r-transparent border-t-[28px] border-t-red-600 drop-shadow-[0_4px_8px_rgba(220,38,38,0.5)]"></div>
+                    {/* Pointer base decoration */}
+                    <div className="absolute -top-[28px] left-1/2 -translate-x-1/2 w-6 h-2 bg-red-700 rounded-t-sm"></div>
+                  </div>
+
+                  {/* Decorative Outer Ring */}
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-wood-golden via-wood-warm to-wood-dark shadow-[0_12px_40px_rgba(74,55,40,0.4)] border-4 border-wood-golden/30">
+                    {/* Inner decorative dots around the rim */}
+                    {[...Array(12)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="absolute w-2 h-2 bg-white/40 rounded-full"
+                        style={{
+                          left: '50%',
+                          top: '50%',
+                          transform: `rotate(${i * 30}deg) translateY(-132px) translateX(-50%)`
+                        }}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Rotating Wheel Container */}
                   <div
-                    className="w-full h-full rounded-full overflow-hidden shadow-lg transition-transform duration-[4s] ease-out relative"
+                    className="absolute inset-3 rounded-full bg-tile-cream shadow-inner overflow-hidden"
                     style={{
                       transform: `rotate(${wheelRotation}deg)`,
-                      background: `conic-gradient(
-                        ${wonPrizes.includes(WHEEL_PRIZES[0].id) ? '#9CA3AF' : WHEEL_PRIZES[0].color} 0deg 90deg,
-                        ${wonPrizes.includes(WHEEL_PRIZES[1].id) ? '#9CA3AF' : WHEEL_PRIZES[1].color} 90deg 180deg,
-                        ${wonPrizes.includes(WHEEL_PRIZES[2].id) ? '#9CA3AF' : WHEEL_PRIZES[2].color} 180deg 270deg,
-                        ${wonPrizes.includes(WHEEL_PRIZES[3].id) ? '#9CA3AF' : WHEEL_PRIZES[3].color} 270deg 360deg
-                      )`
+                      transition: isSpinning ? 'transform 4s cubic-bezier(0.25, 0.1, 0.25, 1)' : 'none'
                     }}
                   >
-                    {/* Prize Labels with Won Status */}
+                    {/* Prize Items - Using origin-bottom transform trick */}
                     {WHEEL_PRIZES.map((prize, idx) => {
                       const isWon = wonPrizes.includes(prize.id);
+                      const segmentAngle = 360 / WHEEL_PRIZES.length; // 90deg for 4 items
+                      const rotationAngle = idx * segmentAngle; // 0, 90, 180, 270
+
                       return (
                         <div
                           key={prize.id}
-                          className="absolute w-1/2 h-1/2 flex items-center justify-center"
+                          className="absolute left-1/2 top-0 h-1/2 w-16 -translate-x-1/2 origin-bottom flex flex-col items-center justify-start pt-4"
                           style={{
-                            transformOrigin: '100% 100%',
-                            transform: `rotate(${idx * 90 + 45}deg)`,
-                            left: 0,
-                            top: 0
+                            transform: `translateX(-50%) rotate(${rotationAngle}deg)`
                           }}
                         >
+                          {/* Prize Icon Container */}
                           <div
-                            className="flex flex-col items-center gap-0.5"
-                            style={{ transform: `rotate(${-idx * 90 - 45}deg)` }}
+                            className={`w-14 h-14 rounded-xl flex items-center justify-center shadow-md border-2 transition-all ${isWon
+                                ? 'bg-gray-200 border-gray-300'
+                                : 'bg-white border-wood-golden/30'
+                              }`}
+                            style={{
+                              transform: `rotate(-${rotationAngle}deg)` // Counter-rotate to keep icon upright
+                            }}
                           >
-                            <span className={`font-bold text-xs text-center leading-tight drop-shadow-md ${isWon ? 'text-gray-300 line-through' : 'text-white'}`}>
-                              {t(`prize${prize.id.charAt(0).toUpperCase() + prize.id.slice(1)}`)}
+                            {/* Prize Icon */}
+                            <span className={`text-2xl ${isWon ? 'grayscale opacity-50' : ''}`}>
+                              {prize.id === 'furniture' && '🪑'}
+                              {prize.id === 'discount' && '🏷️'}
+                              {prize.id === 'gift' && '🎁'}
+                              {prize.id === 'coupon' && '🎟️'}
                             </span>
-                            {isWon && (
-                              <span className="text-[10px] font-bold text-red-200 bg-red-600/60 px-1.5 py-0.5 rounded">
-                                ✓ {t('prizeWon')}
-                              </span>
-                            )}
                           </div>
+                          {/* Prize Label */}
+                          <span
+                            className={`mt-1 text-[10px] font-bold text-center leading-tight px-1 whitespace-nowrap ${isWon ? 'text-gray-400 line-through' : 'text-wood-dark'
+                              }`}
+                            style={{
+                              transform: `rotate(-${rotationAngle}deg)` // Counter-rotate to keep text upright
+                            }}
+                          >
+                            {t(`prize${prize.id.charAt(0).toUpperCase() + prize.id.slice(1)}`)}
+                            {isWon && (
+                              <span className="block text-[8px] text-red-500 font-bold">✓ {t('prizeWon')}</span>
+                            )}
+                          </span>
                         </div>
                       );
                     })}
+
+                    {/* Subtle divider lines between segments */}
+                    {[...Array(WHEEL_PRIZES.length)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="absolute top-1/2 left-1/2 w-1/2 h-0.5 bg-wood-golden/20 origin-left"
+                        style={{ transform: `rotate(${i * 90 + 45}deg)` }}
+                      />
+                    ))}
                   </div>
 
-                  {/* Center Circle */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center z-10">
-                    <span className="text-2xl">🎯</span>
-                  </div>
-
-                  {/* Pointer */}
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 z-20">
-                    <div className="w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-t-[20px] border-t-wood-dark"></div>
+                  {/* Center Spin Button - Prominent Red CTA */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 z-20">
+                    <button
+                      onClick={spinWheel}
+                      disabled={isSpinning || wheelResult !== null || wonPrizes.length >= WHEEL_PRIZES.length}
+                      className="w-full h-full bg-gradient-to-br from-red-500 via-red-600 to-red-700 rounded-full shadow-[0_6px_24px_rgba(220,38,38,0.5)] flex flex-col items-center justify-center border-4 border-white/90 cursor-pointer transition-all hover:scale-110 hover:shadow-[0_8px_32px_rgba(220,38,38,0.6)] active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:shadow-none"
+                    >
+                      <span className="text-white font-bold text-base drop-shadow-md">
+                        {isSpinning ? '...' : t('spinNow').replace('!', '').replace('！', '')}
+                      </span>
+                    </button>
                   </div>
                 </div>
 
@@ -997,7 +1064,7 @@ export default function Game() {
                     </div>
                     <button
                       onClick={() => setActiveModal('claim')}
-                      className={`${styles.btnPrimary} rounded-3xl px-6 py-4 text-lg font-bold text-white cursor-pointer transition-all`}
+                      className="bg-gradient-to-br from-red-500 to-red-700 shadow-[0_8px_24px_rgba(239,68,68,0.4)] hover:shadow-[0_12px_32px_rgba(239,68,68,0.5)] hover:-translate-y-0.5 rounded-3xl px-6 py-4 text-lg font-bold text-white cursor-pointer transition-all"
                     >
                       {t('claimPrize')} 🎁
                     </button>
@@ -1014,10 +1081,11 @@ export default function Game() {
                     </button>
                   </div>
                 ) : (
+                  /* Red CTA Spin Button */
                   <button
                     onClick={spinWheel}
                     disabled={isSpinning}
-                    className={`${styles.btnPrimary} rounded-3xl px-8 py-4 text-xl font-bold text-white cursor-pointer transition-all disabled:opacity-70 disabled:cursor-not-allowed`}
+                    className="bg-gradient-to-br from-red-500 to-red-700 shadow-[0_8px_24px_rgba(239,68,68,0.4)] hover:shadow-[0_12px_32px_rgba(239,68,68,0.5)] hover:-translate-y-0.5 active:translate-y-0 rounded-3xl px-10 py-5 text-xl font-bold text-white cursor-pointer transition-all disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                   >
                     {isSpinning ? t('spinning') : t('spinNow')}
                   </button>
