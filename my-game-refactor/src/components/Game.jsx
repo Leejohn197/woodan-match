@@ -367,6 +367,7 @@ export default function Game() {
   const [activeModal, setActiveModal] = useState(null);
   const [exitingTiles, setExitingTiles] = useState(new Set());
   const [removingSlots, setRemovingSlots] = useState(new Set());
+  const [isMatching, setIsMatching] = useState(false); // 防止匹配消除重复触发
 
   // Gambler mechanism states
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
@@ -539,7 +540,8 @@ export default function Game() {
 
   // Handle tile click
   const handleTileClick = useCallback((tile) => {
-    if (isGameOver || isVictory || tile.blocked) return;
+    // 检查方块是否正在退出动画中，防止重复点击产生多余方块
+    if (isGameOver || isVictory || tile.blocked || exitingTiles.has(tile.id)) return;
 
     initAudio();
     playWoodKnock(soundEnabled);
@@ -559,44 +561,52 @@ export default function Game() {
         return newSet;
       });
     }, 300);
-  }, [isGameOver, isVictory, soundEnabled, checkBlockedTiles]);
+  }, [isGameOver, isVictory, soundEnabled, checkBlockedTiles, exitingTiles]);
 
   // Check for matches
   useEffect(() => {
+    // 如果正在匹配消除中，跳过本次检测，防止重复触发
+    if (isMatching) return;
+
     const typeCount = {};
     slots.forEach(tile => {
       typeCount[tile.type] = (typeCount[tile.type] || 0) + 1;
     });
 
-    Object.keys(typeCount).forEach(type => {
-      if (typeCount[type] >= 3) {
-        const tilesToRemove = [];
-        slots.forEach(tile => {
-          if (tile.type === type && tilesToRemove.length < 3) {
-            tilesToRemove.push(tile.id);
-          }
-        });
+    const matchedType = Object.keys(typeCount).find(type => typeCount[type] >= 3);
 
-        setRemovingSlots(new Set(tilesToRemove));
-        playMatchSound(soundEnabled);
-        hapticMatch();
+    if (matchedType) {
+      // 标记正在匹配，防止重复触发
+      setIsMatching(true);
 
-        setTimeout(() => {
-          setSlots(prevSlots => {
-            let removed = 0;
-            return prevSlots.filter(tile => {
-              if (tile.type === type && removed < 3) {
-                removed++;
-                return false;
-              }
-              return true;
-            });
+      const tilesToRemove = [];
+      slots.forEach(tile => {
+        if (tile.type === matchedType && tilesToRemove.length < 3) {
+          tilesToRemove.push(tile.id);
+        }
+      });
+
+      setRemovingSlots(new Set(tilesToRemove));
+      playMatchSound(soundEnabled);
+      hapticMatch();
+
+      setTimeout(() => {
+        setSlots(prevSlots => {
+          let removed = 0;
+          return prevSlots.filter(tile => {
+            if (tile.type === matchedType && removed < 3) {
+              removed++;
+              return false;
+            }
+            return true;
           });
-          setRemovingSlots(new Set());
-        }, 300);
-      }
-    });
-  }, [slots, soundEnabled]);
+        });
+        setRemovingSlots(new Set());
+        // 匹配完成，允许下一次匹配检测
+        setIsMatching(false);
+      }, 300);
+    }
+  }, [slots, soundEnabled, isMatching]);
 
   // Check win/lose conditions
   useEffect(() => {
@@ -995,8 +1005,8 @@ export default function Game() {
                           {/* Prize Icon Container */}
                           <div
                             className={`w-14 h-14 rounded-xl flex items-center justify-center shadow-md border-2 transition-all ${isWon
-                                ? 'bg-gray-200 border-gray-300'
-                                : 'bg-white border-wood-golden/30'
+                              ? 'bg-gray-200 border-gray-300'
+                              : 'bg-white border-wood-golden/30'
                               }`}
                             style={{
                               transform: `rotate(-${rotationAngle}deg)` // Counter-rotate to keep icon upright
