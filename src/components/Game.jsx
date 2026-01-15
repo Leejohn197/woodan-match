@@ -955,61 +955,67 @@ export default function Game() {
                   {t('spinWheelDesc')}
                 </p>
 
-                {/* Spin Wheel - New Circular Layout with Absolute Positioning */}
-                <div className="relative w-72 h-72 mx-auto mb-6">
-                  {/* Fixed Pointer at Top (Knife/Indicator) */}
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-30">
-                    <div className="w-0 h-0 border-l-[16px] border-l-transparent border-r-[16px] border-r-transparent border-t-[28px] border-t-red-600 drop-shadow-[0_4px_8px_rgba(220,38,38,0.5)]"></div>
-                    {/* Pointer base decoration */}
-                    <div className="absolute -top-[28px] left-1/2 -translate-x-1/2 w-6 h-2 bg-red-700 rounded-t-sm"></div>
+                {/* Spin Wheel - Satellite Orbit Style */}
+                <div className="relative w-80 h-80 mx-auto mb-6">
+                  {/* Fixed Pointer at Top (Indicator Arrow) */}
+                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-40">
+                    <div className="w-0 h-0 border-l-[14px] border-l-transparent border-r-[14px] border-r-transparent border-t-[24px] border-t-red-600 drop-shadow-[0_4px_12px_rgba(220,38,38,0.6)]"></div>
+                    <div className="absolute -top-[24px] left-1/2 -translate-x-1/2 w-5 h-2 bg-red-700 rounded-t-sm"></div>
                   </div>
 
-                  {/* Decorative Outer Ring */}
+                  {/* Outer Decorative Ring (Fixed) */}
                   <div className="absolute inset-0 rounded-full bg-gradient-to-br from-wood-golden via-wood-warm to-wood-dark shadow-[0_12px_40px_rgba(74,55,40,0.4)] border-4 border-wood-golden/30">
-                    {/* Inner decorative dots around the rim */}
-                    {[...Array(12)].map((_, i) => (
+                    {/* Small decorative lights around the rim */}
+                    {[...Array(16)].map((_, i) => (
                       <div
                         key={i}
-                        className="absolute w-2 h-2 bg-white/40 rounded-full"
+                        className={`absolute w-2.5 h-2.5 rounded-full ${isSpinning ? 'animate-pulse' : ''}`}
                         style={{
                           left: '50%',
                           top: '50%',
-                          transform: `rotate(${i * 30}deg) translateY(-132px) translateX(-50%)`
+                          transform: `rotate(${i * 22.5}deg) translateY(-152px) translateX(-50%)`,
+                          backgroundColor: i % 2 === 0 ? 'rgba(255, 215, 0, 0.8)' : 'rgba(255, 255, 255, 0.6)'
                         }}
                       />
                     ))}
                   </div>
 
-                  {/* Rotating Wheel Container */}
+                  {/* Inner Track Ring (Fixed visual) */}
+                  <div className="absolute inset-6 rounded-full bg-gradient-to-br from-tile-cream to-tile-beige shadow-inner border-2 border-wood-golden/20"></div>
+
+                  {/* Rotating Orbit Track with Satellite Prizes */}
                   <div
-                    className="absolute inset-3 rounded-full bg-tile-cream shadow-inner overflow-hidden"
+                    className="absolute inset-6 rounded-full"
                     style={{
                       transform: `rotate(${wheelRotation}deg)`,
                       transition: isSpinning ? 'transform 4s cubic-bezier(0.25, 0.1, 0.25, 1)' : 'none'
                     }}
                   >
-                    {/* Prize Items - Using origin-bottom transform trick */}
+                    {/* Prize Satellites floating on orbit */}
                     {WHEEL_PRIZES.map((prize, idx) => {
                       const isWon = wonPrizes.includes(prize.id);
                       const segmentAngle = 360 / WHEEL_PRIZES.length; // 90deg for 4 items
-                      const rotationAngle = idx * segmentAngle; // 0, 90, 180, 270
+                      const orbitAngle = idx * segmentAngle; // 0, 90, 180, 270
+                      const orbitRadius = 100; // Distance from center
 
                       return (
                         <div
                           key={prize.id}
-                          className="absolute left-1/2 top-0 h-1/2 w-16 -translate-x-1/2 origin-bottom flex flex-col items-center justify-start pt-4"
+                          className="absolute"
                           style={{
-                            transform: `translateX(-50%) rotate(${rotationAngle}deg)`
+                            left: '50%',
+                            top: '50%',
+                            transform: `rotate(${orbitAngle}deg) translateY(-${orbitRadius}px) translateX(-50%)`
                           }}
                         >
-                          {/* Prize Icon Container */}
+                          {/* Satellite Prize Container */}
                           <div
-                            className={`w-14 h-14 rounded-xl flex items-center justify-center shadow-md border-2 transition-all ${isWon
-                              ? 'bg-gray-200 border-gray-300'
-                              : 'bg-white border-wood-golden/30'
+                            className={`w-16 h-16 rounded-2xl flex flex-col items-center justify-center transition-all shadow-lg ${isWon
+                              ? 'bg-gray-200 border-2 border-gray-300'
+                              : 'bg-white border-2 border-wood-golden/40 shadow-[0_4px_16px_rgba(139,90,43,0.3)]'
                               }`}
                             style={{
-                              transform: `rotate(-${rotationAngle}deg)` // Counter-rotate to keep icon upright
+                              transform: `translateX(-50%) rotate(-${orbitAngle}deg) rotate(-${wheelRotation}deg)` // Counter-rotate to keep upright
                             }}
                           >
                             {/* Prize Icon */}
@@ -1019,43 +1025,37 @@ export default function Game() {
                               {prize.id === 'gift' && '🎁'}
                               {prize.id === 'coupon' && '🎟️'}
                             </span>
-                          </div>
-                          {/* Prize Label */}
-                          <span
-                            className={`mt-1 text-[10px] font-bold text-center leading-tight px-1 whitespace-nowrap ${isWon ? 'text-gray-400 line-through' : 'text-wood-dark'
-                              }`}
-                            style={{
-                              transform: `rotate(-${rotationAngle}deg)` // Counter-rotate to keep text upright
-                            }}
-                          >
-                            {t(`prize${prize.id.charAt(0).toUpperCase() + prize.id.slice(1)}`)}
+                            {/* Prize Label */}
+                            <span
+                              className={`text-[9px] font-bold text-center leading-tight mt-0.5 ${isWon ? 'text-gray-400 line-through' : 'text-wood-dark'
+                                }`}
+                            >
+                              {t(`prize${prize.id.charAt(0).toUpperCase() + prize.id.slice(1)}`)}
+                            </span>
                             {isWon && (
-                              <span className="block text-[8px] text-red-500 font-bold">✓ {t('prizeWon')}</span>
+                              <span className="text-[8px] text-red-500 font-bold">✓</span>
                             )}
-                          </span>
+                          </div>
                         </div>
                       );
                     })}
 
-                    {/* Subtle divider lines between segments */}
-                    {[...Array(WHEEL_PRIZES.length)].map((_, i) => (
-                      <div
-                        key={i}
-                        className="absolute top-1/2 left-1/2 w-1/2 h-0.5 bg-wood-golden/20 origin-left"
-                        style={{ transform: `rotate(${i * 90 + 45}deg)` }}
-                      />
-                    ))}
+                    {/* Orbit path visual indicator (dashed circle) */}
+                    <div
+                      className="absolute inset-0 rounded-full border-2 border-dashed border-wood-golden/30 pointer-events-none"
+                      style={{ margin: '34px' }}
+                    ></div>
                   </div>
 
-                  {/* Center Spin Button - Prominent Red CTA */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 z-20">
+                  {/* Center Spin Button - Fixed, does NOT rotate */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 z-30">
                     <button
                       onClick={spinWheel}
                       disabled={isSpinning || wheelResult !== null || wonPrizes.length >= WHEEL_PRIZES.length}
-                      className="w-full h-full bg-gradient-to-br from-red-500 via-red-600 to-red-700 rounded-full shadow-[0_6px_24px_rgba(220,38,38,0.5)] flex flex-col items-center justify-center border-4 border-white/90 cursor-pointer transition-all hover:scale-110 hover:shadow-[0_8px_32px_rgba(220,38,38,0.6)] active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:shadow-none"
+                      className="w-full h-full bg-gradient-to-br from-red-500 via-red-600 to-red-700 rounded-full shadow-[0_8px_32px_rgba(220,38,38,0.5)] flex flex-col items-center justify-center border-4 border-white cursor-pointer transition-all hover:scale-105 hover:shadow-[0_12px_40px_rgba(220,38,38,0.6)] active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:shadow-none"
                     >
-                      <span className="text-white font-bold text-base drop-shadow-md">
-                        {isSpinning ? '...' : t('spinNow').replace('!', '').replace('！', '')}
+                      <span className="text-white font-extrabold text-sm drop-shadow-md leading-tight text-center">
+                        {isSpinning ? '🎰' : t('spinNow').replace('!', '').replace('！', '')}
                       </span>
                     </button>
                   </div>
