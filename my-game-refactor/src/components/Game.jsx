@@ -1,0 +1,765 @@
+import { useState, useEffect, useCallback } from 'react';
+
+// ===== Translations =====
+const TRANSLATIONS = {
+  id: {
+    tagline: 'Permainan Furnitur Kayu',
+    startGame: 'Mulai Main',
+    remaining: 'Sisa',
+    tiles: 'ubin',
+    congratulations: 'Selamat!',
+    levelCleared: 'Tingkat {level} Selesai!',
+    victoryMessage: 'Anda telah membuka set furnitur mewah!',
+    claimPrize: 'Klaim Hadiah',
+    nextLevel: 'Level Berikutnya',
+    grandPrize: 'Hadiah Utama!',
+    gameOver: 'Permainan Berakhir',
+    gameOverMessage: 'Slot sudah penuh! Coba lagi?',
+    tryAgain: 'Coba Lagi',
+    mainMenu: 'Menu Utama',
+    yourPrize: 'Hadiah Anda!',
+    showScreen: 'Tunjukkan layar ini kepada staff kami untuk menerima hadiah spesial!',
+    close: 'Tutup',
+    level1Theme: 'Furnitur Ruang Tamu',
+    level2Theme: 'Furnitur Outdoor',
+    level3Theme: 'Furnitur Kamar Tidur',
+    level1Name: 'Tingkat 1',
+    level2Name: 'Tingkat 2',
+    level3Name: 'Tingkat 3',
+    level1Desc: 'Ruang Tamu - Mudah',
+    level2Desc: 'Outdoor - Sedang',
+    level3Desc: 'Kamar Tidur - Sulit',
+    'armchair': 'Kursi Sofa',
+    'dining-chair': 'Kursi Makan',
+    'table': 'Meja',
+    'stool': 'Bangku',
+    'pattern1': 'Motif 1',
+    'pattern2': 'Motif 2',
+    'lounge-chair': 'Kursi Santai',
+    'ladder-chair': 'Kursi Tangga',
+    'round-table': 'Meja Bundar'
+  },
+  zh: {
+    tagline: '木质家具消消乐',
+    startGame: '开始游戏',
+    remaining: '剩余',
+    tiles: '块',
+    congratulations: '恭喜!',
+    levelCleared: '第{level}关通过!',
+    victoryMessage: '您已解锁豪华家具套装!',
+    claimPrize: '领取奖品',
+    nextLevel: '进入下一关',
+    grandPrize: '终极大奖!',
+    gameOver: '游戏结束',
+    gameOverMessage: '槽位已满！再试一次？',
+    tryAgain: '再试一次',
+    mainMenu: '主菜单',
+    yourPrize: '您的奖品!',
+    showScreen: '请向工作人员展示此屏幕以领取特别奖品！',
+    close: '关闭',
+    level1Theme: '客厅家具',
+    level2Theme: '户外家具',
+    level3Theme: '卧室家具',
+    level1Name: '第1关',
+    level2Name: '第2关',
+    level3Name: '第3关',
+    level1Desc: '客厅 - 简单',
+    level2Desc: '户外 - 中等',
+    level3Desc: '卧室 - 困难',
+    'armchair': '单人沙发',
+    'dining-chair': '餐椅',
+    'table': '餐桌',
+    'stool': '凳子',
+    'pattern1': '图案一',
+    'pattern2': '图案二',
+    'lounge-chair': '休闲椅',
+    'ladder-chair': '梯背椅',
+    'round-table': '圆桌'
+  }
+};
+
+// ===== Furniture Themes by Level =====
+const FURNITURE_THEMES = {
+  livingRoom: [
+    { id: 'armchair', image: '/images/armchair.png' },
+    { id: 'dining-chair', image: '/images/dining_chair.png' },
+    { id: 'table', image: '/images/table.png' },
+    { id: 'stool', image: '/images/stool.png' },
+    { id: 'pattern1', image: '/images/pattern1.png' },
+    { id: 'lounge-chair', image: '/images/lounge_chair.png' }
+  ],
+  outdoor: [
+    { id: 'ladder-chair', image: '/images/ladder_chair.png' },
+    { id: 'round-table', image: '/images/round_table.png' },
+    { id: 'armchair', image: '/images/armchair.png' },
+    { id: 'pattern2', image: '/images/pattern2.png' },
+    { id: 'dining-chair', image: '/images/dining_chair.png' },
+    { id: 'stool', image: '/images/stool.png' }
+  ],
+  bedroom: [
+    { id: 'lounge-chair', image: '/images/lounge_chair.png' },
+    { id: 'pattern1', image: '/images/pattern1.png' },
+    { id: 'table', image: '/images/table.png' },
+    { id: 'ladder-chair', image: '/images/ladder_chair.png' },
+    { id: 'pattern2', image: '/images/pattern2.png' },
+    { id: 'round-table', image: '/images/round_table.png' }
+  ]
+};
+
+// ===== Level Configurations =====
+const LEVEL_CONFIGS = {
+  1: {
+    theme: 'livingRoom',
+    themeKey: 'level1Theme',
+    nameKey: 'level1Name',
+    descKey: 'level1Desc',
+    types: 3,
+    tilesPerType: 6,
+    layers: 2,
+    gridWidth: 4,
+    gridHeight: 3,
+    hasPrize: false
+  },
+  2: {
+    theme: 'outdoor',
+    themeKey: 'level2Theme',
+    nameKey: 'level2Name',
+    descKey: 'level2Desc',
+    types: 4,
+    tilesPerType: 9,
+    layers: 3,
+    gridWidth: 5,
+    gridHeight: 4,
+    hasPrize: false
+  },
+  3: {
+    theme: 'bedroom',
+    themeKey: 'level3Theme',
+    nameKey: 'level3Name',
+    descKey: 'level3Desc',
+    types: 6,
+    tilesPerType: 12,
+    layers: 4,
+    gridWidth: 6,
+    gridHeight: 5,
+    hasPrize: true
+  }
+};
+
+const MAX_LEVEL = 3;
+
+// ===== Tailwind Style Constants =====
+const styles = {
+  // Glass morphism effect
+  glass: 'bg-white/65 backdrop-blur-[10px] border border-[rgba(139,90,43,0.15)]',
+
+  // Tile styles
+  tile: `
+    bg-gradient-to-br from-tile-cream via-tile-beige to-tile-sand
+    rounded-xl select-none
+    shadow-[0_6px_16px_rgba(139,90,43,0.20),0_2px_6px_rgba(107,68,35,0.12),0_1px_2px_rgba(74,55,40,0.08),inset_0_1px_0_rgba(255,255,255,0.8)]
+    border border-[rgba(139,90,43,0.12)]
+  `,
+  tileBlocked: 'brightness-[0.7] cursor-not-allowed',
+  tileHover: 'hover:-translate-y-1.5 hover:scale-105 hover:shadow-[0_12px_28px_rgba(139,90,43,0.25),0_6px_12px_rgba(107,68,35,0.15)] hover:z-[1000]',
+
+  // Button styles
+  btnPrimary: `
+    bg-gradient-to-br from-wood-golden to-wood-warm
+    shadow-[0_8px_32px_rgba(205,133,63,0.4)]
+    hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-[0_12px_40px_rgba(205,133,63,0.5)]
+    active:translate-y-0 active:scale-[0.98]
+  `,
+
+  // Slot styles
+  slot: 'bg-[rgba(139,90,43,0.08)] border-2 border-dashed border-[rgba(139,90,43,0.25)]',
+  slotFilled: 'border-solid border-wood-golden bg-[rgba(205,133,63,0.15)]',
+
+  // Modal styles
+  modal: 'bg-gradient-to-br from-tile-cream to-tile-beige shadow-[0_20px_60px_rgba(74,55,40,0.35)]',
+
+  // Text gradient
+  textGradient: 'bg-gradient-to-br from-wood-dark via-wood-medium to-wood-warm bg-clip-text text-transparent',
+
+  // Progress bar
+  progressFill: 'bg-gradient-to-r from-accent-teal to-accent-green',
+
+  // Confetti colors
+  confettiColors: ['bg-wood-golden', 'bg-accent-coral', 'bg-accent-green', 'bg-accent-teal', 'bg-wood-cream']
+};
+
+// ===== UUID Generator =====
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+// ===== Audio & Haptics =====
+let audioContext = null;
+
+function initAudio() {
+  try {
+    if (!audioContext) {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return false;
+      audioContext = new AudioContextClass();
+    }
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function vibrate(pattern) {
+  if ('vibrate' in navigator) {
+    try { navigator.vibrate(pattern); } catch (e) { }
+  }
+}
+
+function hapticTap() { vibrate(10); }
+function hapticMatch() { vibrate([30, 50, 30]); }
+function hapticGameOver() { vibrate(200); }
+function hapticVictory() { vibrate([50, 30, 50, 30, 100]); }
+
+function playWoodKnock(soundEnabled) {
+  if (!soundEnabled || !audioContext) return;
+  const osc = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  const filter = audioContext.createBiquadFilter();
+
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(800, audioContext.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.1);
+
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(2000, audioContext.currentTime);
+
+  gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+
+  osc.connect(filter);
+  filter.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+
+  osc.start(audioContext.currentTime);
+  osc.stop(audioContext.currentTime + 0.15);
+}
+
+function playMatchSound(soundEnabled) {
+  if (!soundEnabled || !audioContext) return;
+  const notes = [
+    { freq: 659, start: 0, duration: 0.1 },
+    { freq: 784, start: 0.05, duration: 0.1 },
+    { freq: 1047, start: 0.1, duration: 0.15 }
+  ];
+
+  notes.forEach(note => {
+    const osc = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(note.freq, audioContext.currentTime + note.start);
+
+    gainNode.gain.setValueAtTime(0.4, audioContext.currentTime + note.start);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + note.start + note.duration);
+
+    osc.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    osc.start(audioContext.currentTime + note.start);
+    osc.stop(audioContext.currentTime + note.start + note.duration);
+  });
+}
+
+function playVictorySound(soundEnabled) {
+  if (!soundEnabled || !audioContext) return;
+  const notes = [523, 659, 784, 1047];
+  notes.forEach((freq, index) => {
+    const osc = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, audioContext.currentTime + index * 0.15);
+
+    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime + index * 0.15);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + index * 0.15 + 0.4);
+
+    osc.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    osc.start(audioContext.currentTime + index * 0.15);
+    osc.stop(audioContext.currentTime + index * 0.15 + 0.4);
+  });
+}
+
+// ===== Main Game Component =====
+export default function Game() {
+  const [currentScreen, setCurrentScreen] = useState('start');
+  const [currentLevel, setCurrentLevel] = useState(1);
+  const [currentLang, setCurrentLang] = useState('id');
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [tiles, setTiles] = useState([]);
+  const [slots, setSlots] = useState([]);
+  const [isGameOver, setIsGameOver] = useState(false);
+  const [isVictory, setIsVictory] = useState(false);
+  const [activeModal, setActiveModal] = useState(null);
+  const [exitingTiles, setExitingTiles] = useState(new Set());
+  const [removingSlots, setRemovingSlots] = useState(new Set());
+
+  const t = useCallback((key) => TRANSLATIONS[currentLang][key] || key, [currentLang]);
+  const getFurnitureName = useCallback((id) => TRANSLATIONS[currentLang][id] || id, [currentLang]);
+
+  // Load saved language preference
+  useEffect(() => {
+    const savedLang = localStorage.getItem('woodmatch_lang');
+    if (savedLang && (savedLang === 'id' || savedLang === 'zh')) {
+      setCurrentLang(savedLang);
+    }
+  }, []);
+
+  // Generate tiles for a level
+  const generateTiles = useCallback((levelConfig) => {
+    const newTiles = [];
+    const themeFurniture = FURNITURE_THEMES[levelConfig.theme];
+    const types = themeFurniture.slice(0, levelConfig.types);
+
+    types.forEach(type => {
+      for (let i = 0; i < levelConfig.tilesPerType; i++) {
+        newTiles.push({
+          id: generateUUID(),
+          type: type.id,
+          image: type.image,
+          layer: 0,
+          x: 0,
+          y: 0,
+          blocked: false
+        });
+      }
+    });
+
+    // Shuffle
+    for (let i = newTiles.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newTiles[i], newTiles[j]] = [newTiles[j], newTiles[i]];
+    }
+
+    // Assign positions
+    const tileWidth = 60;
+    const tileHeight = 70;
+    const containerWidth = 320;
+    const containerHeight = 400;
+    const layers = levelConfig.layers;
+    const tilesPerLayer = Math.ceil(newTiles.length / layers);
+
+    newTiles.forEach((tile, index) => {
+      const layer = Math.floor(index / tilesPerLayer);
+      const indexInLayer = index % tilesPerLayer;
+
+      const cols = levelConfig.gridWidth;
+      const rows = levelConfig.gridHeight;
+
+      const col = indexInLayer % cols;
+      const row = Math.floor(indexInLayer / cols) % rows;
+
+      const baseX = (containerWidth - cols * tileWidth) / 2 + col * tileWidth;
+      const baseY = (containerHeight - rows * tileHeight) / 2 + row * tileHeight;
+
+      const layerOffset = layer * 15;
+      const randomX = (Math.random() - 0.5) * 20;
+      const randomY = (Math.random() - 0.5) * 20;
+
+      tile.x = Math.max(0, Math.min(containerWidth - tileWidth, baseX + layerOffset + randomX));
+      tile.y = Math.max(0, Math.min(containerHeight - tileHeight, baseY - layerOffset + randomY));
+      tile.layer = layer;
+    });
+
+    return newTiles;
+  }, []);
+
+  // Check blocked tiles
+  const checkBlockedTiles = useCallback((tileList) => {
+    return tileList.map(tile => {
+      let blocked = false;
+      tileList.forEach(otherTile => {
+        if (tile.id === otherTile.id) return;
+        if (otherTile.layer <= tile.layer) return;
+        const overlapX = Math.abs(tile.x - otherTile.x) < 40;
+        const overlapY = Math.abs(tile.y - otherTile.y) < 50;
+        if (overlapX && overlapY) blocked = true;
+      });
+      return { ...tile, blocked };
+    });
+  }, []);
+
+  // Start game
+  const startGame = useCallback(() => {
+    const config = LEVEL_CONFIGS[currentLevel];
+    const newTiles = generateTiles(config);
+    const checkedTiles = checkBlockedTiles(newTiles);
+
+    setTiles(checkedTiles);
+    setSlots([]);
+    setIsGameOver(false);
+    setIsVictory(false);
+    setActiveModal(null);
+    setExitingTiles(new Set());
+    setRemovingSlots(new Set());
+    setCurrentScreen('game');
+  }, [currentLevel, generateTiles, checkBlockedTiles]);
+
+  // Handle tile click
+  const handleTileClick = useCallback((tile) => {
+    if (isGameOver || isVictory || tile.blocked) return;
+
+    initAudio();
+    playWoodKnock(soundEnabled);
+    hapticTap();
+
+    setExitingTiles(prev => new Set([...prev, tile.id]));
+
+    setTimeout(() => {
+      setSlots(prevSlots => [...prevSlots, tile]);
+      setTiles(prevTiles => {
+        const remaining = prevTiles.filter(t => t.id !== tile.id);
+        return checkBlockedTiles(remaining);
+      });
+      setExitingTiles(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(tile.id);
+        return newSet;
+      });
+    }, 300);
+  }, [isGameOver, isVictory, soundEnabled, checkBlockedTiles]);
+
+  // Check for matches
+  useEffect(() => {
+    const typeCount = {};
+    slots.forEach(tile => {
+      typeCount[tile.type] = (typeCount[tile.type] || 0) + 1;
+    });
+
+    Object.keys(typeCount).forEach(type => {
+      if (typeCount[type] >= 3) {
+        const tilesToRemove = [];
+        slots.forEach(tile => {
+          if (tile.type === type && tilesToRemove.length < 3) {
+            tilesToRemove.push(tile.id);
+          }
+        });
+
+        setRemovingSlots(new Set(tilesToRemove));
+        playMatchSound(soundEnabled);
+        hapticMatch();
+
+        setTimeout(() => {
+          setSlots(prevSlots => {
+            let removed = 0;
+            return prevSlots.filter(tile => {
+              if (tile.type === type && removed < 3) {
+                removed++;
+                return false;
+              }
+              return true;
+            });
+          });
+          setRemovingSlots(new Set());
+        }, 300);
+      }
+    });
+  }, [slots, soundEnabled]);
+
+  // Check win/lose conditions
+  useEffect(() => {
+    if (slots.length >= 7 && !isGameOver) {
+      setIsGameOver(true);
+      hapticGameOver();
+      setActiveModal('gameover');
+    } else if (tiles.length === 0 && slots.length === 0 && currentScreen === 'game' && !isVictory) {
+      setIsVictory(true);
+      playVictorySound(soundEnabled);
+      hapticVictory();
+      setActiveModal('victory');
+    }
+  }, [slots, tiles, isGameOver, isVictory, currentScreen, soundEnabled]);
+
+  const changeLanguage = useCallback((lang) => {
+    setCurrentLang(lang);
+    localStorage.setItem('woodmatch_lang', lang);
+  }, []);
+
+  const goToHome = useCallback(() => {
+    setCurrentScreen('start');
+    setActiveModal(null);
+    setCurrentLevel(1);
+  }, []);
+
+  const nextLevel = useCallback(() => {
+    if (currentLevel < MAX_LEVEL) {
+      setCurrentLevel(prev => prev + 1);
+    }
+    setActiveModal(null);
+    setTimeout(() => startGame(), 100);
+  }, [currentLevel, startGame]);
+
+  const retry = useCallback(() => {
+    setActiveModal(null);
+    startGame();
+  }, [startGame]);
+
+  const config = LEVEL_CONFIGS[currentLevel];
+  const totalTiles = config.types * config.tilesPerType;
+  const progress = ((totalTiles - tiles.length) / totalTiles) * 100;
+
+  return (
+    <div className="flex justify-center items-center min-h-screen">
+      {/* Start Screen */}
+      {currentScreen === 'start' && (
+        <div className="flex flex-col items-center justify-center gap-8 text-center w-full max-w-md p-4 relative">
+          {/* Language Toggle */}
+          <div className="absolute top-4 right-4 flex gap-1 z-50">
+            {['id', 'zh'].map(lang => (
+              <button
+                key={lang}
+                onClick={() => changeLanguage(lang)}
+                className={`${styles.glass} rounded-xl px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${currentLang === lang
+                    ? 'bg-accent-gold/20 border-accent-gold text-wood-dark'
+                    : 'text-wood-dark/75 hover:text-wood-dark'
+                  }`}
+              >
+                {lang === 'id' ? '🇮🇩 ID' : '🇨🇳 中文'}
+              </button>
+            ))}
+          </div>
+
+          {/* Logo */}
+          <div className="animate-fade-in-up">
+            <div className="flex items-center justify-center gap-4 mb-2">
+              <span className="text-5xl animate-bounce-soft">🪵</span>
+              <h1 className={`text-4xl font-extrabold ${styles.textGradient}`}>Wood Match</h1>
+            </div>
+            <p className="text-sm text-wood-dark/75 uppercase tracking-wider">{t('tagline')}</p>
+          </div>
+
+          {/* Level Journey */}
+          <div className="flex items-center justify-center gap-2 flex-wrap max-w-full p-2 animate-[fade-in-up_0.8s_ease-out_0.2s_backwards]">
+            {[1, 2, 3].map((level, idx) => (
+              <div key={level} className="flex items-center gap-2">
+                <div className={`${styles.glass} rounded-xl p-3 text-center flex flex-col items-center gap-0.5 min-w-[70px] transition-all ${level === 1 ? 'border-accent-gold bg-accent-gold/15' : ''
+                  }`}>
+                  <div className="text-2xl">{level === 1 ? '🛋️' : level === 2 ? '⛱️' : '🛏️'}</div>
+                  <span className="text-xs font-bold text-wood-dark">{t(`level${level}Name`)}</span>
+                  <span className="text-[8px] text-wood-dark/75 whitespace-nowrap">{t(`level${level}Desc`)}</span>
+                </div>
+                {idx < 2 && <span className="text-wood-dark/50">→</span>}
+              </div>
+            ))}
+            <span className="text-wood-dark/50">→</span>
+            <div className={`${styles.glass} rounded-xl p-3 text-center flex flex-col items-center gap-0.5 min-w-[70px] bg-gradient-to-br from-accent-gold/20 to-accent-coral/20 border-accent-coral`}>
+              <div className="text-2xl">🏆</div>
+              <span className="text-xs font-bold text-wood-dark">{t('grandPrize')}</span>
+            </div>
+          </div>
+
+          {/* Start Button */}
+          <button
+            onClick={startGame}
+            className={`${styles.btnPrimary} rounded-3xl px-8 py-4 text-xl font-bold text-white flex items-center gap-2 min-w-[200px] animate-[fade-in-up_0.8s_ease-out_0.4s_backwards] cursor-pointer transition-all`}
+          >
+            <span>{t('startGame')}</span>
+            <span className="text-lg">▶</span>
+          </button>
+        </div>
+      )}
+
+      {/* Game Screen */}
+      {currentScreen === 'game' && (
+        <div className="flex flex-col w-full max-w-md h-screen max-h-[900px] p-2">
+          {/* Header */}
+          <header className={`${styles.glass} rounded-2xl p-3 flex justify-between items-center mb-4`}>
+            <button
+              onClick={goToHome}
+              className="w-11 h-11 rounded-xl bg-wood-light/10 flex items-center justify-center text-xl cursor-pointer hover:bg-wood-light/20 transition-all"
+            >
+              ←
+            </button>
+            <div className="text-center">
+              <span className="block text-lg font-bold text-wood-dark">{t(config.nameKey)}</span>
+              <span className="block text-xs text-wood-dark/75">{t(config.themeKey)}</span>
+            </div>
+            <button
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className="w-11 h-11 rounded-xl bg-wood-light/10 flex items-center justify-center text-xl cursor-pointer hover:bg-wood-light/20 transition-all"
+            >
+              {soundEnabled ? '🔊' : '🔇'}
+            </button>
+          </header>
+
+          {/* Game Area */}
+          <main className="flex-1 flex justify-center items-center overflow-hidden relative">
+            <div className="relative w-80 h-[400px]" style={{ perspective: '1000px' }}>
+              {tiles.sort((a, b) => a.layer - b.layer).map((tile, index) => (
+                <div
+                  key={tile.id}
+                  className={`
+                    ${styles.tile} absolute w-[60px] h-[70px] flex flex-col items-center justify-center cursor-pointer transition-all
+                    ${tile.blocked ? styles.tileBlocked : styles.tileHover}
+                    ${exitingTiles.has(tile.id) ? 'animate-tile-exit' : 'animate-tile-enter'}
+                  `}
+                  style={{
+                    left: tile.x,
+                    top: tile.y,
+                    zIndex: tile.layer * 10 + index,
+                    animationDelay: exitingTiles.has(tile.id) ? '0s' : `${index * 0.02}s`
+                  }}
+                  onClick={() => !tile.blocked && handleTileClick(tile)}
+                >
+                  <img
+                    src={tile.image}
+                    alt={getFurnitureName(tile.type)}
+                    className="w-[45px] h-[45px] object-contain pointer-events-none brightness-105 contrast-110"
+                  />
+                  <span className="text-[8px] text-wood-medium mt-0.5 font-semibold text-center tracking-wide">
+                    {getFurnitureName(tile.type)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </main>
+
+          {/* Footer */}
+          <footer className={`${styles.glass} rounded-2xl p-4 mt-4`}>
+            <div className="flex justify-center gap-1 mb-4">
+              {[0, 1, 2, 3, 4, 5, 6].map(idx => (
+                <div
+                  key={idx}
+                  className={`${styles.slot} w-[50px] h-[60px] rounded-lg flex items-center justify-center transition-all ${slots[idx] ? styles.slotFilled : ''
+                    }`}
+                >
+                  {slots[idx] && (
+                    <div className={`
+                      ${styles.tile} relative w-[46px] h-[56px] m-0 flex items-center justify-center
+                      ${removingSlots.has(slots[idx].id) ? 'animate-tile-remove' : ''}
+                    `}>
+                      <img src={slots[idx].image} alt={slots[idx].type} className="w-6 h-6 object-contain" />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="h-1.5 bg-black/30 rounded-full overflow-hidden mb-2">
+              <div
+                className={`${styles.progressFill} h-full rounded-full transition-all`}
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <p className="text-center text-sm text-wood-dark/75 font-medium">
+              {t('remaining')}: {tiles.length} {t('tiles')}
+            </p>
+          </footer>
+        </div>
+      )}
+
+      {/* Victory Modal */}
+      {activeModal === 'victory' && (
+        <div className="fixed inset-0 bg-wood-dark/60 backdrop-blur-sm z-[2000] flex justify-center items-center p-4 animate-[fade-in_0.3s_ease-out]">
+          <div className={`${styles.modal} rounded-3xl p-8 text-center max-w-[360px] w-full relative overflow-hidden animate-modal-slide-in`}>
+            {/* Confetti */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              {[0, 1, 2, 3, 4].map(i => (
+                <div
+                  key={i}
+                  className={`${styles.confettiColors[i]} absolute w-2.5 h-2.5 animate-confetti-fall`}
+                  style={{ left: `${(i + 1) * 20 - 10}%`, animationDelay: `${i * 0.5}s` }}
+                />
+              ))}
+            </div>
+            <div className="text-6xl mb-4 animate-icon-bounce">
+              {currentLevel >= MAX_LEVEL ? '🏆' : '🎉'}
+            </div>
+            <h2 className={`text-3xl mb-2 ${styles.textGradient} font-bold`}>
+              {currentLevel >= MAX_LEVEL
+                ? t('congratulations')
+                : t('levelCleared').replace('{level}', currentLevel)}
+            </h2>
+            <p className="text-wood-dark/75 mb-6 leading-relaxed">
+              {currentLevel >= MAX_LEVEL
+                ? t('victoryMessage')
+                : `${t('nextLevel')}: ${t(LEVEL_CONFIGS[currentLevel + 1]?.themeKey || '')}`}
+            </p>
+            <div className="flex flex-col gap-2">
+              {currentLevel >= MAX_LEVEL ? (
+                <button
+                  onClick={() => setActiveModal('claim')}
+                  className={`${styles.btnPrimary} rounded-3xl px-6 py-4 text-lg font-bold text-white flex items-center justify-center gap-2 cursor-pointer transition-all`}
+                >
+                  <span>{t('claimPrize')}</span>
+                  <span>🎁</span>
+                </button>
+              ) : (
+                <button
+                  onClick={nextLevel}
+                  className={`${styles.btnPrimary} rounded-3xl px-6 py-4 text-lg font-bold text-white flex items-center justify-center gap-2 cursor-pointer transition-all`}
+                >
+                  <span>{t('nextLevel')}</span>
+                  <span>→</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Game Over Modal */}
+      {activeModal === 'gameover' && (
+        <div className="fixed inset-0 bg-wood-dark/60 backdrop-blur-sm z-[2000] flex justify-center items-center p-4 animate-[fade-in_0.3s_ease-out]">
+          <div className={`${styles.modal} rounded-3xl p-8 text-center max-w-[360px] w-full animate-modal-slide-in`}>
+            <div className="text-6xl mb-4 animate-icon-bounce">😔</div>
+            <h2 className={`text-3xl mb-2 ${styles.textGradient} font-bold`}>{t('gameOver')}</h2>
+            <p className="text-wood-dark/75 mb-6 leading-relaxed">{t('gameOverMessage')}</p>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={retry}
+                className={`${styles.btnPrimary} rounded-3xl px-6 py-4 text-lg font-bold text-white flex items-center justify-center gap-2 cursor-pointer transition-all`}
+              >
+                <span>{t('tryAgain')}</span>
+                <span>🔄</span>
+              </button>
+              <button
+                onClick={goToHome}
+                className="bg-transparent border-2 border-[rgba(139,90,43,0.15)] rounded-3xl px-4 py-2 text-base font-semibold text-wood-dark/75 cursor-pointer hover:border-wood-dark hover:text-wood-dark transition-all"
+              >
+                {t('mainMenu')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Claim Modal */}
+      {activeModal === 'claim' && (
+        <div className="fixed inset-0 bg-wood-dark/60 backdrop-blur-sm z-[2000] flex justify-center items-center p-4 animate-[fade-in_0.3s_ease-out]">
+          <div className={`${styles.modal} rounded-3xl p-8 text-center max-w-[360px] w-full animate-modal-slide-in`}>
+            <div className="text-6xl mb-4 animate-icon-bounce">🎉</div>
+            <h2 className={`text-3xl mb-2 ${styles.textGradient} font-bold`}>{t('yourPrize')}</h2>
+            <p className="text-wood-dark/75 mb-6 leading-relaxed">{t('showScreen')}</p>
+            <div className="my-6">
+              <div className="bg-white text-wood-dark p-6 rounded-xl inline-block shadow-lg">
+                <span className="text-5xl block mb-2">📱</span>
+                <p className="text-lg font-bold tracking-wider">KODE: WOOD2024</p>
+              </div>
+            </div>
+            <button
+              onClick={goToHome}
+              className={`${styles.btnPrimary} rounded-3xl px-6 py-4 text-lg font-bold text-white cursor-pointer transition-all`}
+            >
+              {t('close')}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

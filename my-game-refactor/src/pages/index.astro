@@ -1,0 +1,18 @@
+---
+import '../styles/global.css';
+import Game from '../components/Game.jsx';
+---
+
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="description" content="Cocokkan furnitur kayu dalam permainan puzzle yang menyenangkan! Match wooden furniture in this fun puzzle game!" />
+    <title>Wood Match - Permainan Furnitur</title>
+  </head>
+  <body class="flex justify-center items-center min-h-screen">
+    <Game client:only="react" />
+  </body>
+</html>
