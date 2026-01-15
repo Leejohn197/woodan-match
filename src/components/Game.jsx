@@ -55,6 +55,10 @@ const TRANSLATIONS = {
     prizeDiscount: 'Diskon 50%',
     prizeGift: 'Hadiah Menarik',
     prizeCoupon: 'Kupon Belanja',
+    prizeDiscount30: 'Diskon 30%',
+    prizeFreebie: 'Kopi Gratis',
+    prizeVoucher: 'Voucher',
+    prizeMystery: 'Misteri',
     youWon: 'Anda Menang!',
     giveUpReward: 'Lepaskan hadiah saat ini untuk kesempatan menang besar!',
     claimSmallPrize: 'Klaim Hadiah Kecil',
@@ -116,6 +120,10 @@ const TRANSLATIONS = {
     prizeDiscount: '五折优惠',
     prizeGift: '精美礼品',
     prizeCoupon: '优惠券',
+    prizeDiscount30: '七折优惠',
+    prizeFreebie: '免费咖啡',
+    prizeVoucher: '代金券',
+    prizeMystery: '神秘大奖',
     youWon: '恭喜中奖！',
     giveUpReward: '放弃当前奖励，有机会赢取大奖！',
     claimSmallPrize: '领取小奖品',
@@ -197,12 +205,16 @@ const LEVEL_CONFIGS = {
   }
 };
 
-// Spin wheel prizes configuration
+// Spin wheel prizes configuration - 8 sectors
 const WHEEL_PRIZES = [
-  { id: 'furniture', weight: 10, color: '#CD853F' },
-  { id: 'discount', weight: 25, color: '#20B2AA' },
-  { id: 'gift', weight: 30, color: '#DEB887' },
-  { id: 'coupon', weight: 35, color: '#8B5A2B' }
+  { id: 'furniture', labelKey: 'prizeFurniture', icon: '🪑', weight: 5, color: '#CD853F' },
+  { id: 'discount50', labelKey: 'prizeDiscount', icon: '🏷️', weight: 10, color: '#20B2AA' },
+  { id: 'gift', labelKey: 'prizeGift', icon: '🎁', weight: 15, color: '#DEB887' },
+  { id: 'coupon', labelKey: 'prizeCoupon', icon: '🎟️', weight: 20, color: '#8B5A2B' },
+  { id: 'discount30', labelKey: 'prizeDiscount30', icon: '💰', weight: 15, color: '#2D5A27' },
+  { id: 'freebie', labelKey: 'prizeFreebie', icon: '☕', weight: 15, color: '#E07B54' },
+  { id: 'voucher', labelKey: 'prizeVoucher', icon: '🎫', weight: 10, color: '#1A6B5C' },
+  { id: 'mystery', labelKey: 'prizeMystery', icon: '❓', weight: 10, color: '#D4A574' }
 ];
 
 const MAX_LEVEL = 3;
@@ -658,7 +670,7 @@ export default function Game() {
     nextLevel();
   }, [nextLevel]);
 
-  // Spin wheel handler with deduplication
+  // Spin wheel handler with near-miss animation
   const spinWheel = useCallback(() => {
     if (isSpinning) return;
 
@@ -669,6 +681,7 @@ export default function Game() {
     if (availablePrizes.length === 0) return;
 
     setIsSpinning(true);
+    setWheelResult(null);
 
     // Weighted random selection from available prizes only
     const totalWeight = availablePrizes.reduce((sum, p) => sum + p.weight, 0);
@@ -683,19 +696,26 @@ export default function Game() {
       }
     }
 
-    // Calculate wheel rotation (wheel rotates to bring prize to fixed pointer at top)
-    // Pointer is fixed at top (0 degrees / 12 o'clock position)
-    // Prize segments: Prize 0 at 0-90deg, Prize 1 at 90-180deg, Prize 2 at 180-270deg, Prize 3 at 270-360deg
-    // To land on a prize, we rotate the wheel so the prize center aligns with the pointer
+    // Calculate target rotation
     const prizeIndex = WHEEL_PRIZES.findIndex(p => p.id === selectedPrize.id);
-    const segmentAngle = 360 / WHEEL_PRIZES.length; // 90 degrees per segment
-    // Prize center positions: Prize 0 at 45deg, Prize 1 at 135deg, Prize 2 at 225deg, Prize 3 at 315deg
+    const segmentAngle = 360 / WHEEL_PRIZES.length; // 45 degrees per segment (8 sectors)
     const prizeCenter = prizeIndex * segmentAngle + segmentAngle / 2;
-    // Rotate wheel backwards (negative) to bring prize to top, plus 5 full spins
-    const targetAngle = -(360 * 5 + prizeCenter);
 
-    setWheelRotation(targetAngle);
+    // Near-miss effect: overshoot by 1-2 sectors then come back
+    const overshootAmount = segmentAngle * (1 + Math.random()); // Overshoot by 1-2 sectors
+    const baseSpins = 8; // More spins for longer animation
+    const overshootAngle = 360 * baseSpins + prizeCenter + overshootAmount;
+    const finalAngle = 360 * baseSpins + prizeCenter;
 
+    // Phase 1: Acceleration + Long constant speed + Overshoot (6 seconds)
+    setWheelRotation(overshootAngle);
+
+    // Phase 2: Near-miss stutter back to final position (after 6s)
+    setTimeout(() => {
+      setWheelRotation(finalAngle);
+    }, 6000);
+
+    // Phase 3: Complete and show result (after 7.5s total)
     setTimeout(() => {
       setIsSpinning(false);
       setWheelResult(selectedPrize.id);
@@ -704,7 +724,7 @@ export default function Game() {
       const newWonPrizes = [...wonPrizes, selectedPrize.id];
       setWonPrizes(newWonPrizes);
       localStorage.setItem('woodmatch_wonPrizes', JSON.stringify(newWonPrizes));
-    }, 4000);
+    }, 7500);
   }, [isSpinning, wonPrizes]);
 
   // Dismiss cooldown modal
@@ -955,106 +975,113 @@ export default function Game() {
                   {t('spinWheelDesc')}
                 </p>
 
-                {/* Spin Wheel - Satellite Orbit Style */}
-                <div className="relative w-80 h-80 mx-auto mb-6">
+                {/* Spin Wheel - Conic Gradient Sector Style */}
+                <div className="relative w-72 h-72 mx-auto mb-6">
                   {/* Fixed Pointer at Top (Indicator Arrow) */}
-                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-40">
-                    <div className="w-0 h-0 border-l-[14px] border-l-transparent border-r-[14px] border-r-transparent border-t-[24px] border-t-red-600 drop-shadow-[0_4px_12px_rgba(220,38,38,0.6)]"></div>
-                    <div className="absolute -top-[24px] left-1/2 -translate-x-1/2 w-5 h-2 bg-red-700 rounded-t-sm"></div>
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-50">
+                    <div className="w-0 h-0 border-l-[16px] border-l-transparent border-r-[16px] border-r-transparent border-t-[28px] border-t-red-600 drop-shadow-[0_4px_12px_rgba(220,38,38,0.6)]"></div>
+                    <div className="absolute -top-[28px] left-1/2 -translate-x-1/2 w-6 h-2.5 bg-red-700 rounded-t-sm"></div>
                   </div>
 
-                  {/* Outer Decorative Ring (Fixed) */}
-                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-wood-golden via-wood-warm to-wood-dark shadow-[0_12px_40px_rgba(74,55,40,0.4)] border-4 border-wood-golden/30">
+                  {/* Outer Decorative Ring with Lights (Fixed) */}
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-wood-golden via-wood-warm to-wood-dark shadow-[0_12px_40px_rgba(74,55,40,0.5)] p-2">
                     {/* Small decorative lights around the rim */}
-                    {[...Array(16)].map((_, i) => (
+                    {[...Array(24)].map((_, i) => (
                       <div
                         key={i}
-                        className={`absolute w-2.5 h-2.5 rounded-full ${isSpinning ? 'animate-pulse' : ''}`}
+                        className={`absolute w-2 h-2 rounded-full ${isSpinning ? 'animate-pulse' : ''}`}
                         style={{
                           left: '50%',
                           top: '50%',
-                          transform: `rotate(${i * 22.5}deg) translateY(-152px) translateX(-50%)`,
-                          backgroundColor: i % 2 === 0 ? 'rgba(255, 215, 0, 0.8)' : 'rgba(255, 255, 255, 0.6)'
+                          transform: `rotate(${i * 15}deg) translateY(-140px) translateX(-50%)`,
+                          backgroundColor: i % 2 === 0 ? 'rgba(255, 215, 0, 0.9)' : 'rgba(255, 255, 255, 0.7)'
                         }}
                       />
                     ))}
-                  </div>
 
-                  {/* Inner Track Ring (Fixed visual) */}
-                  <div className="absolute inset-6 rounded-full bg-gradient-to-br from-tile-cream to-tile-beige shadow-inner border-2 border-wood-golden/20"></div>
-
-                  {/* Rotating Orbit Track with Satellite Prizes */}
-                  <div
-                    className="absolute inset-6 rounded-full"
-                    style={{
-                      transform: `rotate(${wheelRotation}deg)`,
-                      transition: isSpinning ? 'transform 4s cubic-bezier(0.25, 0.1, 0.25, 1)' : 'none'
-                    }}
-                  >
-                    {/* Prize Satellites floating on orbit */}
-                    {WHEEL_PRIZES.map((prize, idx) => {
-                      const isWon = wonPrizes.includes(prize.id);
-                      const segmentAngle = 360 / WHEEL_PRIZES.length; // 90deg for 4 items
-                      const orbitAngle = idx * segmentAngle; // 0, 90, 180, 270
-                      const orbitRadius = 100; // Distance from center
-
-                      return (
+                    {/* Main Wheel Container - This rotates */}
+                    <div
+                      className="wheel-container absolute inset-2 rounded-full overflow-hidden shadow-inner"
+                      style={{
+                        transform: `rotate(${wheelRotation}deg)`,
+                        transition: isSpinning
+                          ? 'transform 6s cubic-bezier(0.2, 0.8, 0.3, 1), transform 1.5s cubic-bezier(0.4, 0, 0.2, 1) 6s'
+                          : 'transform 1.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                        background: `conic-gradient(
+                          from 0deg,
+                          ${WHEEL_PRIZES[0].color} 0deg 45deg,
+                          ${WHEEL_PRIZES[1].color} 45deg 90deg,
+                          ${WHEEL_PRIZES[2].color} 90deg 135deg,
+                          ${WHEEL_PRIZES[3].color} 135deg 180deg,
+                          ${WHEEL_PRIZES[4].color} 180deg 225deg,
+                          ${WHEEL_PRIZES[5].color} 225deg 270deg,
+                          ${WHEEL_PRIZES[6].color} 270deg 315deg,
+                          ${WHEEL_PRIZES[7].color} 315deg 360deg
+                        )`
+                      }}
+                    >
+                      {/* Sector Divider Lines */}
+                      {[...Array(8)].map((_, i) => (
                         <div
-                          key={prize.id}
-                          className="absolute"
+                          key={`line-${i}`}
+                          className="absolute w-0.5 bg-white/40 origin-bottom"
                           style={{
+                            height: '50%',
                             left: '50%',
-                            top: '50%',
-                            transform: `rotate(${orbitAngle}deg) translateY(-${orbitRadius}px) translateX(-50%)`
+                            top: '0',
+                            transform: `translateX(-50%) rotate(${i * 45}deg)`,
+                            transformOrigin: '50% 100%'
                           }}
-                        >
-                          {/* Satellite Prize Container */}
+                        />
+                      ))}
+
+                      {/* Prize Items - Radially Arranged (bottom towards center) */}
+                      {WHEEL_PRIZES.map((prize, idx) => {
+                        const isWon = wonPrizes.includes(prize.id);
+                        const segmentAngle = 360 / WHEEL_PRIZES.length; // 45 degrees
+                        const centerAngle = idx * segmentAngle + segmentAngle / 2; // 22.5, 67.5, 112.5, ...
+                        const radius = 85; // Distance from center for prize display
+
+                        return (
                           <div
-                            className={`w-16 h-16 rounded-2xl flex flex-col items-center justify-center transition-all shadow-lg ${isWon
-                              ? 'bg-gray-200 border-2 border-gray-300'
-                              : 'bg-white border-2 border-wood-golden/40 shadow-[0_4px_16px_rgba(139,90,43,0.3)]'
-                              }`}
+                            key={prize.id}
+                            className="absolute flex flex-col items-center justify-center"
                             style={{
-                              transform: `translateX(-50%) rotate(-${orbitAngle}deg) rotate(-${wheelRotation}deg)` // Counter-rotate to keep upright
+                              left: '50%',
+                              top: '50%',
+                              transform: `rotate(${centerAngle}deg) translateY(-${radius}px) rotate(180deg)`,
+                              width: '50px',
+                              marginLeft: '-25px'
                             }}
                           >
                             {/* Prize Icon */}
-                            <span className={`text-2xl ${isWon ? 'grayscale opacity-50' : ''}`}>
-                              {prize.id === 'furniture' && '🪑'}
-                              {prize.id === 'discount' && '🏷️'}
-                              {prize.id === 'gift' && '🎁'}
-                              {prize.id === 'coupon' && '🎟️'}
+                            <span className={`text-xl drop-shadow-md ${isWon ? 'grayscale opacity-50' : ''}`}>
+                              {prize.icon}
                             </span>
                             {/* Prize Label */}
                             <span
-                              className={`text-[9px] font-bold text-center leading-tight mt-0.5 ${isWon ? 'text-gray-400 line-through' : 'text-wood-dark'
+                              className={`text-[8px] font-bold text-center leading-tight mt-0.5 drop-shadow-sm whitespace-nowrap ${isWon ? 'text-white/50 line-through' : 'text-white'
                                 }`}
                             >
-                              {t(`prize${prize.id.charAt(0).toUpperCase() + prize.id.slice(1)}`)}
+                              {t(prize.labelKey)}
                             </span>
                             {isWon && (
-                              <span className="text-[8px] text-red-500 font-bold">✓</span>
+                              <span className="text-[10px] text-white font-bold drop-shadow-md">✓</span>
                             )}
                           </div>
-                        </div>
-                      );
-                    })}
-
-                    {/* Orbit path visual indicator (dashed circle) */}
-                    <div
-                      className="absolute inset-0 rounded-full border-2 border-dashed border-wood-golden/30 pointer-events-none"
-                      style={{ margin: '34px' }}
-                    ></div>
+                        );
+                      })}
+                    </div>
                   </div>
 
-                  {/* Center Spin Button - Fixed, does NOT rotate */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 z-30">
+                  {/* Center Hub - Fixed, does NOT rotate */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 z-30">
                     <button
                       onClick={spinWheel}
                       disabled={isSpinning || wheelResult !== null || wonPrizes.length >= WHEEL_PRIZES.length}
                       className="w-full h-full bg-gradient-to-br from-red-500 via-red-600 to-red-700 rounded-full shadow-[0_8px_32px_rgba(220,38,38,0.5)] flex flex-col items-center justify-center border-4 border-white cursor-pointer transition-all hover:scale-105 hover:shadow-[0_12px_40px_rgba(220,38,38,0.6)] active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:shadow-none"
                     >
-                      <span className="text-white font-extrabold text-sm drop-shadow-md leading-tight text-center">
+                      <span className="text-white font-extrabold text-xs drop-shadow-md leading-tight text-center">
                         {isSpinning ? '🎰' : t('spinNow').replace('!', '').replace('！', '')}
                       </span>
                     </button>
@@ -1068,8 +1095,11 @@ export default function Game() {
                       {t('youWon')}
                     </h3>
                     <div className={`${styles.glass} rounded-xl p-4 mb-4`}>
+                      <p className="text-3xl mb-2">
+                        {WHEEL_PRIZES.find(p => p.id === wheelResult)?.icon}
+                      </p>
                       <p className="text-xl font-bold text-wood-dark">
-                        {t(`prize${wheelResult.charAt(0).toUpperCase() + wheelResult.slice(1)}`)}
+                        {t(WHEEL_PRIZES.find(p => p.id === wheelResult)?.labelKey || 'prizeGift')}
                       </p>
                     </div>
                     <button
