@@ -198,6 +198,7 @@ export default function PremiumShareCard({
                     padding: 6px 16px;
                     border-radius: 20px;
                     backdrop-filter: blur(4px);
+                    text-align: center;
                 }
 
                 /* 弹跳动画 */
