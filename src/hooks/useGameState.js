@@ -72,8 +72,25 @@ const ActionTypes = {
     SET_CLAIMED_LEVEL: 'SET_CLAIMED_LEVEL',
     START_GAME: 'START_GAME',
     RESET_GAME: 'RESET_GAME',
-    CLEAR_MATCHED_TILES: 'CLEAR_MATCHED_TILES'
+    CLEAR_MATCHED_TILES: 'CLEAR_MATCHED_TILES',
+    MOVE_TILE_TO_SLOT: 'MOVE_TILE_TO_SLOT',
+    COMPLETE_SPIN: 'COMPLETE_SPIN'
 };
+
+// ===== Helper Functions =====
+function checkBlockedTilesHelper(tileList) {
+    return tileList.map(tile => {
+        let blocked = false;
+        tileList.forEach(otherTile => {
+            if (tile.id === otherTile.id) return;
+            if (otherTile.layer <= tile.layer) return;
+            const overlapX = Math.abs(tile.x - otherTile.x) < 40;
+            const overlapY = Math.abs(tile.y - otherTile.y) < 50;
+            if (overlapX && overlapY) blocked = true;
+        });
+        return { ...tile, blocked };
+    });
+}
 
 // ===== Reducer =====
 function gameReducer(state, action) {
@@ -114,6 +131,22 @@ function gameReducer(state, action) {
                 slots: newSlots,
                 removingSlots: new Set(),
                 isMatching: false
+            };
+        }
+
+        case ActionTypes.MOVE_TILE_TO_SLOT: {
+            const { tile } = action.payload;
+            // Remove tile from tiles array and recalculate blocked status
+            const remainingTiles = state.tiles.filter(t => t.id !== tile.id);
+            const updatedTiles = checkBlockedTilesHelper(remainingTiles);
+            // Remove from exiting tiles
+            const newExitingTiles = new Set(state.exitingTiles);
+            newExitingTiles.delete(tile.id);
+            return {
+                ...state,
+                tiles: updatedTiles,
+                slots: [...state.slots, tile],
+                exitingTiles: newExitingTiles
             };
         }
 
@@ -158,6 +191,16 @@ function gameReducer(state, action) {
 
         case ActionTypes.ADD_WON_PRIZE:
             return { ...state, wonPrizes: [...state.wonPrizes, action.payload] };
+
+        case ActionTypes.COMPLETE_SPIN: {
+            const { prizeId } = action.payload;
+            return {
+                ...state,
+                isSpinning: false,
+                wheelResult: prizeId,
+                wonPrizes: [...state.wonPrizes, prizeId]
+            };
+        }
 
         case ActionTypes.SET_COOLDOWN:
             return { ...state, cooldownRemaining: action.payload };
@@ -318,14 +361,12 @@ export function useGameState() {
         dispatch({ type: ActionTypes.ADD_EXITING_TILE, payload: tile.id });
 
         setTimeout(() => {
-            dispatch({ type: ActionTypes.ADD_TO_SLOT, payload: tile });
             dispatch({
-                type: ActionTypes.SET_TILES,
-                payload: checkBlockedTiles(state.tiles.filter(t => t.id !== tile.id))
+                type: ActionTypes.MOVE_TILE_TO_SLOT,
+                payload: { tile }
             });
-            dispatch({ type: ActionTypes.REMOVE_EXITING_TILE, payload: tile.id });
         }, 300);
-    }, [state.isGameOver, state.isVictory, state.soundEnabled, state.exitingTiles, state.tiles, checkBlockedTiles]);
+    }, [state.isGameOver, state.isVictory, state.soundEnabled, state.exitingTiles]);
 
     // Check for matches
     const checkMatches = useCallback(() => {
@@ -448,12 +489,11 @@ export function useGameState() {
         dispatch({ type: ActionTypes.SET_WHEEL_ROTATION, payload: finalAngle });
 
         setTimeout(() => {
-            dispatch({ type: ActionTypes.SET_SPINNING, payload: false });
-            dispatch({ type: ActionTypes.SET_WHEEL_RESULT, payload: selectedPrize.id });
-
-            const newWonPrizes = [...state.wonPrizes, selectedPrize.id];
-            dispatch({ type: ActionTypes.SET_WON_PRIZES, payload: newWonPrizes });
-            storage.setWonPrizes(newWonPrizes);
+            dispatch({
+                type: ActionTypes.COMPLETE_SPIN,
+                payload: { prizeId: selectedPrize.id }
+            });
+            storage.setWonPrizes([...state.wonPrizes, selectedPrize.id]);
         }, GAME_CONSTANTS.SPIN_RESULT_DELAY_MS);
     }, [state.isSpinning, state.wonPrizes]);
 
