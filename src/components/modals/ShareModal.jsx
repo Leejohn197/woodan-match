@@ -37,10 +37,10 @@ export default function ShareModal({ onClose, t, shareUrl }) {
 
                 {/* 底部提示 */}
                 <div className="mt-4 text-center">
-                    <p className="text-white/90 text-sm font-medium mb-2">
+                    <p className="text-wood-dark text-sm font-medium mb-2">
                         📸 {t?.('screenshotToShare') || '截图分享给好友'}
                     </p>
-                    <p className="text-white/60 text-xs">
+                    <p className="text-wood-dark/70 text-xs">
                         {t?.('inviteFriends') || '邀请好友一起来玩'}
                     </p>
                 </div>

@@ -189,9 +189,15 @@ export default function PremiumShareCard({
                 .card-subtitle {
                     font-size: 14px;
                     font-weight: 600;
-                    color: #4A3728;
-                    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+                    color: #2D1810;
+                    text-shadow: 
+                        0 1px 2px rgba(255, 255, 255, 0.8),
+                        0 0 8px rgba(255, 255, 255, 0.6);
                     letter-spacing: 0.5px;
+                    background: rgba(255, 255, 255, 0.75);
+                    padding: 6px 16px;
+                    border-radius: 20px;
+                    backdrop-filter: blur(4px);
                 }
 
                 /* 弹跳动画 */
