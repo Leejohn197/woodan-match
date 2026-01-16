@@ -5,7 +5,7 @@ export default function StartScreen({ currentLang, t, onLanguageChange, onStartG
         <div className="flex flex-col items-center justify-center gap-8 text-center w-full max-w-md p-4 relative">
             {/* Language Toggle */}
             <div className="absolute top-4 right-4 flex gap-1 z-50">
-                {['id', 'zh'].map(lang => (
+                {['id', 'zh', 'en'].map(lang => (
                     <button
                         key={lang}
                         onClick={() => onLanguageChange(lang)}
@@ -14,7 +14,7 @@ export default function StartScreen({ currentLang, t, onLanguageChange, onStartG
                             : 'text-wood-dark/75 hover:text-wood-dark'
                             }`}
                     >
-                        {lang === 'id' ? '🇮🇩 ID' : '🇨🇳 中文'}
+                        {lang === 'id' ? '🇮🇩 ID' : lang === 'zh' ? '🇨🇳 中文' : '🇬🇧 EN'}
                     </button>
                 ))}
             </div>

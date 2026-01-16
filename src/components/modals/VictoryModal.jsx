@@ -83,7 +83,7 @@ export default function VictoryModal({
                 {/* Level 3: Spin Wheel */}
                 {currentLevel >= MAX_LEVEL && (
                     <>
-                        <p className="text-wood-dark/75 mb-4 leading-relaxed">
+                        <p className="text-wood-dark/75 mb-2 leading-relaxed">
                             {t('spinWheelDesc')}
                         </p>
 
