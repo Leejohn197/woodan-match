@@ -67,38 +67,38 @@ export default function SpinWheel({
                         />
                     ))}
 
-                    {/* Prize Items - Radially Arranged (bottom towards center) */}
+                    {/* Prize Items - "Cake Slice" Layout Pattern */}
                     {WHEEL_PRIZES.map((prize, idx) => {
                         const isWon = wonPrizes.includes(prize.id);
                         const segmentAngle = 360 / WHEEL_PRIZES.length;
                         const centerAngle = idx * segmentAngle + segmentAngle / 2;
-                        const radius = 85;
 
                         return (
                             <div
                                 key={prize.id}
-                                className="absolute flex flex-col items-center justify-center"
+                                className="absolute flex flex-col items-center justify-start gap-1 pt-2"
                                 style={{
+                                    height: '136px',  // Wheel radius (144px - 8px padding)
+                                    width: '60px',
                                     left: '50%',
-                                    top: '50%',
-                                    transform: `rotate(${centerAngle}deg) translateY(-${radius}px) rotate(180deg)`,
-                                    width: '50px',
-                                    marginLeft: '-25px'
+                                    bottom: '50%',
+                                    transformOrigin: 'bottom center',
+                                    transform: `translateX(-50%) rotate(${centerAngle}deg)`
                                 }}
                             >
-                                {/* Prize Icon */}
-                                <span className={`text-xl drop-shadow-md ${isWon ? 'grayscale opacity-50' : ''}`}>
-                                    {prize.icon}
-                                </span>
-                                {/* Prize Label */}
+                                {/* Prize Label (at top/outer edge - most space) */}
                                 <span
-                                    className={`text-[8px] font-bold text-center leading-tight mt-0.5 drop-shadow-sm whitespace-nowrap ${isWon ? 'text-white/50 line-through' : 'text-white'
+                                    className={`text-[9px] font-bold text-center leading-tight drop-shadow-sm ${isWon ? 'text-white/50 line-through' : 'text-white'
                                         }`}
                                 >
                                     {t(prize.labelKey)}
                                 </span>
+                                {/* Prize Icon (below label) */}
+                                <span className={`text-2xl drop-shadow-md ${isWon ? 'grayscale opacity-50' : ''}`}>
+                                    {prize.icon}
+                                </span>
                                 {isWon && (
-                                    <span className="text-[10px] text-white font-bold drop-shadow-md">✓</span>
+                                    <span className="text-[11px] text-white font-bold drop-shadow-md">✓</span>
                                 )}
                             </div>
                         );
