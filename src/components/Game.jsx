@@ -14,6 +14,7 @@ import GameOverModal from './modals/GameOverModal';
 import CooldownModal from './modals/CooldownModal';
 import ClaimRewardModal from './modals/ClaimRewardModal';
 import ClaimModal from './modals/ClaimModal';
+import ShareModal from './modals/ShareModal';
 
 // ===== Main Game Component =====
 export default function Game() {
@@ -89,6 +90,7 @@ export default function Game() {
           t={t}
           onLanguageChange={actions.changeLanguage}
           onStartGame={actions.startGame}
+          onShare={() => actions.setModal('share')}
         />
       )}
 
@@ -162,6 +164,16 @@ export default function Game() {
           onClose={actions.goToHome}
         />
       )}
+
+      {/* Share Modal */}
+      {state.activeModal === 'share' && (
+        <ShareModal
+          t={t}
+          shareUrl={typeof window !== 'undefined' ? window.location.origin : 'https://wood-match-game.com'}
+          onClose={() => actions.setModal(null)}
+        />
+      )}
     </div>
   );
 }
+

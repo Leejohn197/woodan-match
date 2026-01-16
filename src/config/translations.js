@@ -63,7 +63,12 @@ export const TRANSLATIONS = {
         orContinue: 'atau lanjutkan tantangan',
         prizeWon: 'Didapat',
         allPrizesWon: 'Semua hadiah sudah diklaim!',
-        noPrizesLeft: 'Tidak ada hadiah tersisa'
+        noPrizesLeft: 'Tidak ada hadiah tersisa',
+        // Share translations
+        share: 'Bagikan',
+        scanToPlay: '🪵 Scan untuk main bersama',
+        screenshotToShare: 'Screenshot untuk dibagikan ke teman',
+        inviteFriends: 'Ajak teman bermain bersama'
     },
     zh: {
         tagline: '木质家具消消乐',
@@ -128,7 +133,12 @@ export const TRANSLATIONS = {
         orContinue: '或继续挑战',
         prizeWon: '已获得',
         allPrizesWon: '所有奖品已领取！',
-        noPrizesLeft: '没有剩余奖品'
+        noPrizesLeft: '没有剩余奖品',
+        // Share translations
+        share: '分享',
+        scanToPlay: '🪵 扫码一起玩',
+        screenshotToShare: '截图分享给好友',
+        inviteFriends: '邀请好友一起来玩'
     },
     en: {
         tagline: 'Wood Furniture Match Game',
@@ -193,6 +203,11 @@ export const TRANSLATIONS = {
         orContinue: 'or continue the challenge',
         prizeWon: 'Won',
         allPrizesWon: 'All prizes have been claimed!',
-        noPrizesLeft: 'No prizes left'
+        noPrizesLeft: 'No prizes left',
+        // Share translations
+        share: 'Share',
+        scanToPlay: '🪵 Scan to play together',
+        screenshotToShare: 'Screenshot to share with friends',
+        inviteFriends: 'Invite friends to play'
     }
 };

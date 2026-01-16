@@ -1,0 +1,20 @@
+---
+import '../styles/global.css';
+import PremiumShareCard from '../components/PremiumShareCard.jsx';
+---
+
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PremiumShareCard Demo</title>
+  </head>
+  <body class="flex justify-center items-center min-h-screen">
+    <div class="flex flex-col items-center gap-8">
+      <h1 class="text-2xl font-bold text-wood-dark">🎴 PremiumShareCard 预览</h1>
+      <PremiumShareCard client:only="react" />
+      <p class="text-sm text-wood-dark/60">悬停卡片可查看动画效果</p>
+    </div>
+  </body>
+</html>
