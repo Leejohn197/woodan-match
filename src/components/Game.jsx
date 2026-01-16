@@ -701,21 +701,14 @@ export default function Game() {
     const segmentAngle = 360 / WHEEL_PRIZES.length; // 45 degrees per segment (8 sectors)
     const prizeCenter = prizeIndex * segmentAngle + segmentAngle / 2;
 
-    // Near-miss effect: overshoot by 1-2 sectors then come back
-    const overshootAmount = segmentAngle * (1 + Math.random()); // Overshoot by 1-2 sectors
-    const baseSpins = 8; // More spins for longer animation
-    const overshootAngle = 360 * baseSpins + prizeCenter + overshootAmount;
+    // Simple spin: multiple rotations + land on target
+    const baseSpins = 8; // 8 full rotations for visual effect
     const finalAngle = 360 * baseSpins + prizeCenter;
 
-    // Phase 1: Acceleration + Long constant speed + Overshoot (6 seconds)
-    setWheelRotation(overshootAngle);
+    // Set the final rotation - the CSS transition handles the animation
+    setWheelRotation(finalAngle);
 
-    // Phase 2: Near-miss stutter back to final position (after 6s)
-    setTimeout(() => {
-      setWheelRotation(finalAngle);
-    }, 6000);
-
-    // Phase 3: Complete and show result (after 7.5s total)
+    // Complete and show result (after 6s animation + 0.5s buffer)
     setTimeout(() => {
       setIsSpinning(false);
       setWheelResult(selectedPrize.id);
@@ -724,7 +717,7 @@ export default function Game() {
       const newWonPrizes = [...wonPrizes, selectedPrize.id];
       setWonPrizes(newWonPrizes);
       localStorage.setItem('woodmatch_wonPrizes', JSON.stringify(newWonPrizes));
-    }, 7500);
+    }, 6500);
   }, [isSpinning, wonPrizes]);
 
   // Dismiss cooldown modal
@@ -1004,9 +997,17 @@ export default function Game() {
                       className="wheel-container absolute inset-2 rounded-full overflow-hidden shadow-inner"
                       style={{
                         transform: `rotate(${wheelRotation}deg)`,
+                        WebkitTransform: `rotate(${wheelRotation}deg)`,
+                        touchAction: 'none',
+                        userSelect: 'none',
+                        WebkitUserSelect: 'none',
+                        pointerEvents: 'none',
                         transition: isSpinning
-                          ? 'transform 6s cubic-bezier(0.2, 0.8, 0.3, 1), transform 1.5s cubic-bezier(0.4, 0, 0.2, 1) 6s'
+                          ? 'transform 6s cubic-bezier(0.2, 0.8, 0.3, 1)'
                           : 'transform 1.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                        WebkitTransition: isSpinning
+                          ? '-webkit-transform 6s cubic-bezier(0.2, 0.8, 0.3, 1)'
+                          : '-webkit-transform 1.5s cubic-bezier(0.4, 0, 0.2, 1)',
                         background: `conic-gradient(
                           from 0deg,
                           ${WHEEL_PRIZES[0].color} 0deg 45deg,
