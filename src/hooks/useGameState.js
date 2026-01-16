@@ -481,10 +481,15 @@ export function useGameState() {
         }
 
         // Calculate rotation
+        // Pointer is at 12 o'clock (top), conic-gradient starts from 3 o'clock (0deg)
+        // To land on a prize, we need to rotate the wheel so the prize center aligns with the pointer
+        // Formula: 360 * spins + (360 - prizeCenter - 90) where 90 is offset from 3 o'clock to 12 o'clock
         const prizeIndex = WHEEL_PRIZES.findIndex(p => p.id === selectedPrize.id);
         const segmentAngle = 360 / WHEEL_PRIZES.length;
         const prizeCenter = prizeIndex * segmentAngle + segmentAngle / 2;
-        const finalAngle = 360 * GAME_CONSTANTS.BASE_SPINS + prizeCenter;
+        // Adjust for pointer at top: target angle is where we want the prize to end up (at top/12 o'clock)
+        const targetAngle = 360 - prizeCenter + 90;
+        const finalAngle = 360 * GAME_CONSTANTS.BASE_SPINS + targetAngle;
 
         dispatch({ type: ActionTypes.SET_WHEEL_ROTATION, payload: finalAngle });
 

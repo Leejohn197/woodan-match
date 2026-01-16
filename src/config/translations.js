@@ -62,7 +62,7 @@ export const TRANSLATIONS = {
         claimSmallPrize: 'Klaim Hadiah Kecil',
         orContinue: 'atau lanjutkan tantangan',
         prizeWon: 'Didapat',
-        allPrizesWon: 'Semua hadiah sudah diklaim!',
+        allPrizesWon: 'Anda sudah mendapatkan semua hadiah. Terima kasih atas partisipasi Anda!',
         noPrizesLeft: 'Tidak ada hadiah tersisa',
         // Share translations
         share: 'Bagikan',
@@ -132,7 +132,7 @@ export const TRANSLATIONS = {
         claimSmallPrize: '领取小奖品',
         orContinue: '或继续挑战',
         prizeWon: '已获得',
-        allPrizesWon: '所有奖品已领取！',
+        allPrizesWon: '您已获得所有奖品，感谢您的参与！',
         noPrizesLeft: '没有剩余奖品',
         // Share translations
         share: '分享',
@@ -202,7 +202,7 @@ export const TRANSLATIONS = {
         claimSmallPrize: 'Claim Small Prize',
         orContinue: 'or continue the challenge',
         prizeWon: 'Won',
-        allPrizesWon: 'All prizes have been claimed!',
+        allPrizesWon: 'You have won all prizes. Thank you for participating!',
         noPrizesLeft: 'No prizes left',
         // Share translations
         share: 'Share',
