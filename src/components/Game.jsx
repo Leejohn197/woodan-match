@@ -38,13 +38,15 @@ export default function Game() {
 
   // Check for matches when slots change
   useEffect(() => {
+    if (state.isMatching) return;
     actions.checkMatches();
-  }, [state.slots, actions.checkMatches]);
+  }, [state.slots, state.isMatching, actions.checkMatches]);
 
   // Check game end conditions
   useEffect(() => {
+    if (state.isMatching) return;
     actions.checkGameEnd();
-  }, [state.slots, state.tiles, actions.checkGameEnd]);
+  }, [state.slots, state.tiles, state.isMatching, actions.checkGameEnd]);
 
   // Cooldown timer effect
   useEffect(() => {

@@ -71,7 +71,8 @@ const ActionTypes = {
     SET_COOLDOWN: 'SET_COOLDOWN',
     SET_CLAIMED_LEVEL: 'SET_CLAIMED_LEVEL',
     START_GAME: 'START_GAME',
-    RESET_GAME: 'RESET_GAME'
+    RESET_GAME: 'RESET_GAME',
+    CLEAR_MATCHED_TILES: 'CLEAR_MATCHED_TILES'
 };
 
 // ===== Reducer =====
@@ -97,6 +98,24 @@ function gameReducer(state, action) {
 
         case ActionTypes.REMOVE_FROM_SLOTS:
             return { ...state, slots: action.payload };
+
+        case ActionTypes.CLEAR_MATCHED_TILES: {
+            const { matchedType, matchCount } = action.payload;
+            let removed = 0;
+            const newSlots = state.slots.filter(tile => {
+                if (tile.type === matchedType && removed < matchCount) {
+                    removed++;
+                    return false;
+                }
+                return true;
+            });
+            return {
+                ...state,
+                slots: newSlots,
+                removingSlots: new Set(),
+                isMatching: false
+            };
+        }
 
         case ActionTypes.SET_GAME_OVER:
             return { ...state, isGameOver: action.payload };
@@ -334,23 +353,19 @@ export function useGameState() {
             hapticMatch();
 
             setTimeout(() => {
-                let removed = 0;
-                const newSlots = state.slots.filter(tile => {
-                    if (tile.type === matchedType && removed < GAME_CONSTANTS.MATCH_COUNT) {
-                        removed++;
-                        return false;
-                    }
-                    return true;
+                dispatch({
+                    type: ActionTypes.CLEAR_MATCHED_TILES,
+                    payload: { matchedType, matchCount: GAME_CONSTANTS.MATCH_COUNT }
                 });
-                dispatch({ type: ActionTypes.REMOVE_FROM_SLOTS, payload: newSlots });
-                dispatch({ type: ActionTypes.SET_REMOVING_SLOTS, payload: [] });
-                dispatch({ type: ActionTypes.SET_MATCHING, payload: false });
             }, 300);
         }
     }, [state.slots, state.soundEnabled, state.isMatching]);
 
     // Check win/lose conditions
     const checkGameEnd = useCallback(() => {
+        // Skip check during matching animation
+        if (state.isMatching) return;
+
         if (state.slots.length >= GAME_CONSTANTS.SLOT_LIMIT && !state.isGameOver) {
             dispatch({ type: ActionTypes.SET_GAME_OVER, payload: true });
             hapticGameOver();
@@ -361,7 +376,7 @@ export function useGameState() {
             hapticVictory();
             dispatch({ type: ActionTypes.SET_MODAL, payload: 'victory' });
         }
-    }, [state.slots, state.tiles, state.isGameOver, state.isVictory, state.currentScreen, state.soundEnabled]);
+    }, [state.slots, state.tiles, state.isGameOver, state.isVictory, state.currentScreen, state.soundEnabled, state.isMatching]);
 
     // Change language
     const changeLanguage = useCallback((lang) => {
