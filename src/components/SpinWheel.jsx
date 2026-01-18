@@ -67,9 +67,10 @@ export default function SpinWheel({
                     {/* Sector Divider Lines - aligned with conic-gradient sectors */}
                     {[...Array(8)].map((_, i) => {
                         const segmentAngle = 360 / WHEEL_PRIZES.length;
-                        // Divider lines should be at segment boundaries (edges), not centers
-                        // Since the gradient starts at -90 - segmentAngle/2, dividers are at i * segmentAngle
-                        const lineAngle = i * segmentAngle;
+                        // The gradient starts with offset: -90 - segmentAngle/2
+                        // So divider lines must be at: i * segmentAngle + startOffset
+                        const startOffset = -90 - segmentAngle / 2;  // -112.5deg
+                        const lineAngle = i * segmentAngle + startOffset;
                         return (
                             <div
                                 key={`line-${i}`}
@@ -89,7 +90,8 @@ export default function SpinWheel({
                     {WHEEL_PRIZES.map((prize, idx) => {
                         const isWon = wonPrizes.includes(prize.id);
                         const segmentAngle = 360 / WHEEL_PRIZES.length;
-                        const centerAngle = idx * segmentAngle + segmentAngle / 2;
+                        // Prize centers align with color sector centers: -90, -45, 0, 45, ...
+                        const centerAngle = -90 + idx * segmentAngle;
 
                         return (
                             <div
