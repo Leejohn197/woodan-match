@@ -494,23 +494,27 @@ export function useGameState() {
         // Calculate rotation
         // The wheel displays prizes starting from -90deg (12 o'clock):
         //   Prize[0] center is at -90deg (top, aligned with pointer)
-        //   Prize[1] center is at -90 + 45 = -45deg
+        //   Prize[1] center is at -90 + 45 = -45deg (clockwise from Prize[0])
         //   Prize[i] center is at -90 + i * 45deg
         //
-        // The pointer is fixed at the top (which is 270deg or -90deg in CSS coordinate)
+        // The pointer is fixed at the top (12 o'clock position)
         // When we add positive rotation, the wheel rotates clockwise
         //
         // Initial state: Prize[0] is at top (rotation = 0)
-        // To land on Prize[i], we need to rotate so Prize[i] comes to the top
-        // Prize[i] is currently at angle: i * segmentAngle (relative to Prize[0])
-        // To bring it to top, we rotate clockwise by: i * segmentAngle
+        // When wheel rotates clockwise by segmentAngle, Prize[0] moves to the right
+        // and Prize[7] (the last one) comes to the top
         //
-        // Since this is cumulative rotation from 0, we just need: baseSpins + i * segmentAngle
+        // To land on Prize[i], we need Prize[i] to come to the top
+        // Prize[i] is at position i * segmentAngle clockwise from top
+        // To bring it to top, we need to rotate the wheel so Prize[i] moves counter-clockwise to top
+        // This means rotating: (totalPrizes - prizeIndex) * segmentAngle clockwise
+        // Or equivalently: -prizeIndex * segmentAngle (but we want positive rotation for visual effect)
         const prizeIndex = WHEEL_PRIZES.findIndex(p => p.id === selectedPrize.id);
         const segmentAngle = 360 / WHEEL_PRIZES.length;
         // Calculate how much to rotate to bring prize[i] to the top
-        // Prize[i] needs to travel (i * segmentAngle) degrees clockwise to reach the pointer
-        const rotationToReachTop = prizeIndex * segmentAngle;
+        // Prize[i] is at angle i * segmentAngle from top (clockwise)
+        // To bring it back to top, rotate: (8 - i) * segmentAngle (or 360 - i * segmentAngle)
+        const rotationToReachTop = (WHEEL_PRIZES.length - prizeIndex) % WHEEL_PRIZES.length * segmentAngle;
         // Add base spins for visual effect (always complete full rotations)
         const baseRotation = 360 * GAME_CONSTANTS.BASE_SPINS;
         const finalAngle = baseRotation + rotationToReachTop;

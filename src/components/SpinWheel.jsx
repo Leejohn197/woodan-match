@@ -138,6 +138,15 @@ export default function SpinWheel({
                     </span>
                 </button>
             </div>
+
+            {/* Won prizes exclusion hint - show when there are won prizes but not all */}
+            {wonPrizes.length > 0 && !isAllWon && (
+                <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-full text-center">
+                    <span className="text-xs text-wood-dark/60 bg-white/80 px-2 py-0.5 rounded-full">
+                        {t('wonPrizesExcluded')}
+                    </span>
+                </div>
+            )}
         </div>
     );
 }
