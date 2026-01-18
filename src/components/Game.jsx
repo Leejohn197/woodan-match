@@ -153,7 +153,7 @@ export default function Game() {
         <CooldownModal
           cooldownRemaining={state.cooldownRemaining}
           t={t}
-          onDismiss={actions.dismissCooldown}
+          onDismiss={actions.goToHome}
         />
       )}
 
