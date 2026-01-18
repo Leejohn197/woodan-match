@@ -7,7 +7,8 @@ const STORAGE_KEYS = {
     LAST_PLAYED: 'woodmatch_lastPlayed',
     PRIZE_DATE: 'woodmatch_prizeDate',
     HAS_PLAYED: 'woodmatch_hasPlayed',
-    GIFT_CODES: 'woodmatch_giftCodes'
+    GIFT_CODES: 'woodmatch_giftCodes',
+    WHEEL_ROTATION: 'woodmatch_wheelRotation'
 };
 
 
@@ -47,6 +48,29 @@ export const storage = {
         localStorage.setItem(STORAGE_KEYS.WON_PRIZES, JSON.stringify(prizes));
     },
 
+    // Wheel Rotation (normalized to 0-360)
+    getWheelRotation: () => {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEYS.WHEEL_ROTATION);
+            if (saved) {
+                const rotation = parseFloat(saved);
+                return isNaN(rotation) ? 0 : rotation;
+            }
+        } catch {
+            // silently fail
+        }
+        return 0;
+    },
+    setWheelRotation: (rotation) => {
+        try {
+            // Store normalized angle (0-360) to avoid very large numbers
+            const normalized = rotation % 360;
+            localStorage.setItem(STORAGE_KEYS.WHEEL_ROTATION, normalized.toString());
+        } catch {
+            // silently fail in privacy mode
+        }
+    },
+
     // Cooldown
     checkCooldown: () => {
         const lastPlayed = localStorage.getItem(STORAGE_KEYS.LAST_PLAYED);
@@ -76,6 +100,7 @@ export const storage = {
             localStorage.removeItem(STORAGE_KEYS.LAST_PLAYED);
             localStorage.removeItem(STORAGE_KEYS.HAS_PLAYED);
             localStorage.removeItem(STORAGE_KEYS.GIFT_CODES);
+            localStorage.removeItem(STORAGE_KEYS.WHEEL_ROTATION);
             return true;
         }
         return false;

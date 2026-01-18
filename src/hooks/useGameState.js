@@ -193,10 +193,11 @@ function gameReducer(state, action) {
             return { ...state, wonPrizes: [...state.wonPrizes, action.payload] };
 
         case ActionTypes.COMPLETE_SPIN: {
-            const { prizeId } = action.payload;
+            const { prizeId, finalRotation } = action.payload;
             const newWonPrizes = [...state.wonPrizes, prizeId];
             // Save to storage synchronously in reducer to avoid stale closure
             storage.setWonPrizes(newWonPrizes);
+            storage.setWheelRotation(finalRotation);
             return {
                 ...state,
                 isSpinning: false,
@@ -332,10 +333,16 @@ export function useGameState() {
         const savedLang = storage.getLang();
         dispatch({ type: ActionTypes.SET_LANG, payload: savedLang });
 
-        // Load won prizes (if not reset)
+        // Load saved data (if not reset)
         if (!didReset) {
             const savedPrizes = storage.getWonPrizes();
             dispatch({ type: ActionTypes.SET_WON_PRIZES, payload: savedPrizes });
+
+            // Load wheel rotation to maintain visual position
+            const savedRotation = storage.getWheelRotation();
+            if (savedRotation > 0) {
+                dispatch({ type: ActionTypes.SET_WHEEL_ROTATION, payload: savedRotation });
+            }
         }
     }, []);
 
@@ -491,43 +498,41 @@ export function useGameState() {
             }
         }
 
-        // Calculate rotation
-        // The wheel displays prizes starting from -90deg (12 o'clock):
-        //   Prize[0] center is at -90deg (top, aligned with pointer)
-        //   Prize[1] center is at -90 + 45 = -45deg (clockwise from Prize[0])
-        //   Prize[i] center is at -90 + i * 45deg
-        //
-        // The pointer is fixed at the top (12 o'clock position)
-        // When we add positive rotation, the wheel rotates clockwise
-        //
-        // Initial state: Prize[0] is at top (rotation = 0)
-        // When wheel rotates clockwise by segmentAngle, Prize[0] moves to the right
-        // and Prize[7] (the last one) comes to the top
-        //
-        // To land on Prize[i], we need Prize[i] to come to the top
-        // Prize[i] is at position i * segmentAngle clockwise from top
-        // To bring it to top, we need to rotate the wheel so Prize[i] moves counter-clockwise to top
-        // This means rotating: (totalPrizes - prizeIndex) * segmentAngle clockwise
-        // Or equivalently: -prizeIndex * segmentAngle (but we want positive rotation for visual effect)
+        // Calculate rotation - CUMULATIVE MODE
+        // We must add to the current rotation to ensure the wheel always spins clockwise
+        // If we set an absolute angle that's smaller than current, the wheel would spin backwards!
         const prizeIndex = WHEEL_PRIZES.findIndex(p => p.id === selectedPrize.id);
         const segmentAngle = 360 / WHEEL_PRIZES.length;
-        // Calculate how much to rotate to bring prize[i] to the top
-        // Prize[i] is at angle i * segmentAngle from top (clockwise)
-        // To bring it back to top, rotate: (8 - i) * segmentAngle (or 360 - i * segmentAngle)
-        const rotationToReachTop = (WHEEL_PRIZES.length - prizeIndex) % WHEEL_PRIZES.length * segmentAngle;
-        // Add base spins for visual effect (always complete full rotations)
+
+        // Target position: where Prize[i] would be at the top (pointer position)
+        // Prize[i] needs to be at 0 degrees (top) after rotation
+        // With wheel rotated by angle R, Prize[i] is at top when: (i * segmentAngle + R) % 360 = 0
+        // So we need R % 360 = (360 - i * segmentAngle) % 360 = ((8-i) % 8) * segmentAngle
+        const targetAngle = ((WHEEL_PRIZES.length - prizeIndex) % WHEEL_PRIZES.length) * segmentAngle;
+
+        // Current wheel position (normalized to 0-360)
+        const currentNormalizedAngle = state.wheelRotation % 360;
+
+        // Calculate the additional rotation needed to reach target
+        // Must be positive (clockwise) and we add base spins for visual effect
+        let additionalToTarget = targetAngle - currentNormalizedAngle;
+        if (additionalToTarget <= 0) {
+            additionalToTarget += 360;  // Ensure we spin forward, not backward
+        }
+
+        // Add base spins (8 full rotations) for visual effect, then additional rotation to land on target
         const baseRotation = 360 * GAME_CONSTANTS.BASE_SPINS;
-        const finalAngle = baseRotation + rotationToReachTop;
+        const finalAngle = state.wheelRotation + baseRotation + additionalToTarget;
 
         dispatch({ type: ActionTypes.SET_WHEEL_ROTATION, payload: finalAngle });
 
         spinTimerRef.current = setTimeout(() => {
             dispatch({
                 type: ActionTypes.COMPLETE_SPIN,
-                payload: { prizeId: selectedPrize.id }
+                payload: { prizeId: selectedPrize.id, finalRotation: finalAngle }
             });
         }, GAME_CONSTANTS.SPIN_RESULT_DELAY_MS);
-    }, [state.isSpinning, state.wonPrizes, state.wheelResult]);
+    }, [state.isSpinning, state.wonPrizes, state.wheelResult, state.wheelRotation]);
 
     // Dismiss cooldown
     const dismissCooldown = useCallback(() => {
