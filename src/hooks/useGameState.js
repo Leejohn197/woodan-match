@@ -84,8 +84,8 @@ function checkBlockedTilesHelper(tileList) {
         tileList.forEach(otherTile => {
             if (tile.id === otherTile.id) return;
             if (otherTile.layer <= tile.layer) return;
-            const overlapX = Math.abs(tile.x - otherTile.x) < 40;
-            const overlapY = Math.abs(tile.y - otherTile.y) < 50;
+            const overlapX = Math.abs(tile.x - otherTile.x) < GAME_CONSTANTS.TILE_OVERLAP_THRESHOLD_X;
+            const overlapY = Math.abs(tile.y - otherTile.y) < GAME_CONSTANTS.TILE_OVERLAP_THRESHOLD_Y;
             if (overlapX && overlapY) blocked = true;
         });
         return { ...tile, blocked };
@@ -321,21 +321,6 @@ export function useGameState() {
         return newTiles;
     }, []);
 
-    // Check blocked tiles
-    const checkBlockedTiles = useCallback((tileList) => {
-        return tileList.map(tile => {
-            let blocked = false;
-            tileList.forEach(otherTile => {
-                if (tile.id === otherTile.id) return;
-                if (otherTile.layer <= tile.layer) return;
-                const overlapX = Math.abs(tile.x - otherTile.x) < 40;
-                const overlapY = Math.abs(tile.y - otherTile.y) < 50;
-                if (overlapX && overlapY) blocked = true;
-            });
-            return { ...tile, blocked };
-        });
-    }, []);
-
     // ===== Actions =====
 
     // Initialize - load saved data
@@ -366,11 +351,11 @@ export function useGameState() {
 
         const config = LEVEL_CONFIGS[state.currentLevel];
         const newTiles = generateTiles(config);
-        const checkedTiles = checkBlockedTiles(newTiles);
+        const checkedTiles = checkBlockedTilesHelper(newTiles);
 
         dispatch({ type: ActionTypes.START_GAME, payload: { tiles: checkedTiles } });
         storage.recordPlaySession();
-    }, [state.currentLevel, generateTiles, checkBlockedTiles]);
+    }, [state.currentLevel, generateTiles]);
 
     // Handle tile click
     const handleTileClick = useCallback((tile) => {
@@ -507,28 +492,28 @@ export function useGameState() {
         }
 
         // Calculate rotation
-        // The conic-gradient starts at -90 - segmentAngle/2 (see prizes.js)
-        // This means prize[0]'s center is at the top (12 o'clock position)
-        // Prize[i]'s center is at angle: i * segmentAngle (relative to initial wheel position)
-        // The pointer is fixed at the top (0°/360°)
-        // To land on prize[i], we need to rotate the wheel so prize[i]'s center aligns with the pointer
-        // 
-        // Visual layout (initial wheel state, pointer at top):
-        //   Prize 0 center is at top (0°)
-        //   Prize 1 center is at 45° clockwise
-        //   Prize 2 center is at 90° clockwise, etc.
+        // The wheel displays prizes starting from -90deg (12 o'clock):
+        //   Prize[0] center is at -90deg (top, aligned with pointer)
+        //   Prize[1] center is at -90 + 45 = -45deg
+        //   Prize[i] center is at -90 + i * 45deg
         //
-        // To bring prize[i] to the top, we rotate clockwise by: i * segmentAngle
-        // But CSS rotation is counter-clockwise positive, so we use negative rotation
-        // Or equivalently, rotate by (360 - i * segmentAngle) + full spins
+        // The pointer is fixed at the top (which is 270deg or -90deg in CSS coordinate)
+        // When we add positive rotation, the wheel rotates clockwise
+        //
+        // Initial state: Prize[0] is at top (rotation = 0)
+        // To land on Prize[i], we need to rotate so Prize[i] comes to the top
+        // Prize[i] is currently at angle: i * segmentAngle (relative to Prize[0])
+        // To bring it to top, we rotate clockwise by: i * segmentAngle
+        //
+        // Since this is cumulative rotation from 0, we just need: baseSpins + i * segmentAngle
         const prizeIndex = WHEEL_PRIZES.findIndex(p => p.id === selectedPrize.id);
         const segmentAngle = 360 / WHEEL_PRIZES.length;
-        const prizeCenterAngle = prizeIndex * segmentAngle;
-        // We rotate the wheel clockwise, which means increasing the rotation value
-        // To bring prizeCenterAngle to 0° (top), we rotate by (360 - prizeCenterAngle)
-        // Add base spins for visual effect
+        // Calculate how much to rotate to bring prize[i] to the top
+        // Prize[i] needs to travel (i * segmentAngle) degrees clockwise to reach the pointer
+        const rotationToReachTop = prizeIndex * segmentAngle;
+        // Add base spins for visual effect (always complete full rotations)
         const baseRotation = 360 * GAME_CONSTANTS.BASE_SPINS;
-        const finalAngle = baseRotation + (360 - prizeCenterAngle);
+        const finalAngle = baseRotation + rotationToReachTop;
 
         dispatch({ type: ActionTypes.SET_WHEEL_ROTATION, payload: finalAngle });
 

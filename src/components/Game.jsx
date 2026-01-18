@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 
 // Config
 import { TRANSLATIONS } from '../config/translations';
@@ -64,11 +64,21 @@ export default function Game() {
     }
   }, [state.activeModal, state.cooldownRemaining, actions]);
 
-  // Handle next level (start game after modal closes)
+  // Track previous level for detecting level changes
+  const prevLevelRef = useRef(state.currentLevel);
+
+  // Handle next level (just update level, useEffect will start game)
   const handleNextLevel = useCallback(() => {
     actions.nextLevel();
-    setTimeout(() => actions.startGame(), 100);
   }, [actions]);
+
+  // Watch for level changes and auto-start game
+  useEffect(() => {
+    if (state.currentLevel > prevLevelRef.current && state.activeModal === null) {
+      prevLevelRef.current = state.currentLevel;
+      actions.startGame();
+    }
+  }, [state.currentLevel, state.activeModal, actions]);
 
   // Handle retry
   const handleRetry = useCallback(() => {

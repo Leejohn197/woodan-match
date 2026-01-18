@@ -15,11 +15,19 @@ const STORAGE_KEYS = {
 export const storage = {
     // Language
     getLang: () => {
-        const lang = localStorage.getItem(STORAGE_KEYS.LANG);
-        return (lang === 'id' || lang === 'zh') ? lang : 'id';
+        try {
+            const lang = localStorage.getItem(STORAGE_KEYS.LANG);
+            return (lang === 'id' || lang === 'zh') ? lang : 'id';
+        } catch {
+            return 'id';
+        }
     },
     setLang: (lang) => {
-        localStorage.setItem(STORAGE_KEYS.LANG, lang);
+        try {
+            localStorage.setItem(STORAGE_KEYS.LANG, lang);
+        } catch {
+            // silently fail in privacy mode
+        }
     },
 
     // Won Prizes
