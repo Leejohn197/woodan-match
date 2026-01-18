@@ -64,20 +64,26 @@ export default function SpinWheel({
                         background: generateWheelGradient(WHEEL_PRIZES)
                     }}
                 >
-                    {/* Sector Divider Lines */}
-                    {[...Array(8)].map((_, i) => (
-                        <div
-                            key={`line-${i}`}
-                            className="absolute w-0.5 bg-white/40 origin-bottom"
-                            style={{
-                                height: '50%',
-                                left: '50%',
-                                top: '0',
-                                transform: `translateX(-50%) rotate(${i * 45}deg)`,
-                                transformOrigin: '50% 100%'
-                            }}
-                        />
-                    ))}
+                    {/* Sector Divider Lines - aligned with conic-gradient sectors */}
+                    {[...Array(8)].map((_, i) => {
+                        const segmentAngle = 360 / WHEEL_PRIZES.length;
+                        // Divider lines should be at segment boundaries (edges), not centers
+                        // Since the gradient starts at -90 - segmentAngle/2, dividers are at i * segmentAngle
+                        const lineAngle = i * segmentAngle;
+                        return (
+                            <div
+                                key={`line-${i}`}
+                                className="absolute w-0.5 bg-white/40 origin-bottom"
+                                style={{
+                                    height: '50%',
+                                    left: '50%',
+                                    top: '0',
+                                    transform: `translateX(-50%) rotate(${lineAngle}deg)`,
+                                    transformOrigin: '50% 100%'
+                                }}
+                            />
+                        );
+                    })}
 
                     {/* Prize Items - "Cake Slice" Layout Pattern */}
                     {WHEEL_PRIZES.map((prize, idx) => {

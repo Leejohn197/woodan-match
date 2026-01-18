@@ -507,14 +507,28 @@ export function useGameState() {
         }
 
         // Calculate rotation
-        // The conic-gradient now starts at 12 o'clock (top) with prize centers aligned
-        // To land on a prize, we rotate the wheel so the selected prize comes back to the top
-        // Since prizes start at index 0 at the top, we need to rotate by the prize's center angle
+        // The conic-gradient starts at -90 - segmentAngle/2 (see prizes.js)
+        // This means prize[0]'s center is at the top (12 o'clock position)
+        // Prize[i]'s center is at angle: i * segmentAngle (relative to initial wheel position)
+        // The pointer is fixed at the top (0°/360°)
+        // To land on prize[i], we need to rotate the wheel so prize[i]'s center aligns with the pointer
+        // 
+        // Visual layout (initial wheel state, pointer at top):
+        //   Prize 0 center is at top (0°)
+        //   Prize 1 center is at 45° clockwise
+        //   Prize 2 center is at 90° clockwise, etc.
+        //
+        // To bring prize[i] to the top, we rotate clockwise by: i * segmentAngle
+        // But CSS rotation is counter-clockwise positive, so we use negative rotation
+        // Or equivalently, rotate by (360 - i * segmentAngle) + full spins
         const prizeIndex = WHEEL_PRIZES.findIndex(p => p.id === selectedPrize.id);
         const segmentAngle = 360 / WHEEL_PRIZES.length;
-        const prizeCenter = prizeIndex * segmentAngle;
-        // Rotate clockwise: negative angle brings the prize to top, add full spins
-        const finalAngle = 360 * GAME_CONSTANTS.BASE_SPINS - prizeCenter;
+        const prizeCenterAngle = prizeIndex * segmentAngle;
+        // We rotate the wheel clockwise, which means increasing the rotation value
+        // To bring prizeCenterAngle to 0° (top), we rotate by (360 - prizeCenterAngle)
+        // Add base spins for visual effect
+        const baseRotation = 360 * GAME_CONSTANTS.BASE_SPINS;
+        const finalAngle = baseRotation + (360 - prizeCenterAngle);
 
         dispatch({ type: ActionTypes.SET_WHEEL_ROTATION, payload: finalAngle });
 
