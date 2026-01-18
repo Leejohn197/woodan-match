@@ -1,8 +1,10 @@
 import { styles } from '../../config/constants';
+import { WHEEL_PRIZES } from '../../config/prizes';
 import { useGiftCode } from '../../hooks/useGiftCode';
 
 export default function ClaimModal({ wheelResult, t, onClose }) {
     const { code, expiry } = useGiftCode(wheelResult);
+    const prizeConfig = WHEEL_PRIZES.find(p => p.id === wheelResult);
 
     return (
         <div className="fixed inset-0 bg-wood-dark/60 backdrop-blur-sm z-[2000] flex justify-center items-center p-4 animate-[fade-in_0.3s_ease-out]">
@@ -12,9 +14,9 @@ export default function ClaimModal({ wheelResult, t, onClose }) {
                 <p className="text-wood-dark/75 mb-6 leading-relaxed">{t('showScreen')}</p>
                 <div className="my-6">
                     <div className="bg-white text-wood-dark p-6 rounded-xl inline-block shadow-lg">
-                        <span className="text-5xl block mb-2">🎁</span>
+                        <span className="text-5xl block mb-2">{prizeConfig?.icon || '🎁'}</span>
                         <p className="text-lg font-bold mb-1">
-                            {wheelResult ? t(`prize${wheelResult.charAt(0).toUpperCase() + wheelResult.slice(1)}`) : t('grandPrize')}
+                            {prizeConfig ? t(prizeConfig.labelKey) : t('grandPrize')}
                         </p>
                         <p className="text-2xl font-bold tracking-wider text-wood-golden">
                             KODE: {code}
