@@ -1,6 +1,10 @@
 import { styles } from '../../config/constants';
+import { useGiftCode } from '../../hooks/useGiftCode';
 
 export default function ClaimRewardModal({ claimedRewardLevel, t, onClose }) {
+    const prizeId = claimedRewardLevel === 1 ? 'sticker' : 'coffee';
+    const { code, expiry } = useGiftCode(prizeId);
+
     return (
         <div className="fixed inset-0 bg-wood-dark/60 backdrop-blur-sm z-[2000] flex justify-center items-center p-4 animate-[fade-in_0.3s_ease-out]">
             <div className={`${styles.modal} rounded-3xl p-8 text-center max-w-[360px] w-full animate-modal-slide-in`}>
@@ -15,7 +19,10 @@ export default function ClaimRewardModal({ claimedRewardLevel, t, onClose }) {
                             {claimedRewardLevel === 1 ? t('consolationPrize') : t('smallPrize')}
                         </p>
                         <p className="text-2xl font-bold tracking-wider text-wood-golden">
-                            KODE: {claimedRewardLevel === 1 ? 'WOOD-STICKER' : 'WOOD-COFFEE'}
+                            KODE: {code}
+                        </p>
+                        <p className="text-xs text-wood-dark/50 mt-2">
+                            {t('validUntil')}: {new Date(expiry).toLocaleString()}
                         </p>
                     </div>
                 </div>

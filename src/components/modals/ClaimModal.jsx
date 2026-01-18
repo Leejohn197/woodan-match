@@ -1,6 +1,9 @@
 import { styles } from '../../config/constants';
+import { useGiftCode } from '../../hooks/useGiftCode';
 
 export default function ClaimModal({ wheelResult, t, onClose }) {
+    const { code, expiry } = useGiftCode(wheelResult);
+
     return (
         <div className="fixed inset-0 bg-wood-dark/60 backdrop-blur-sm z-[2000] flex justify-center items-center p-4 animate-[fade-in_0.3s_ease-out]">
             <div className={`${styles.modal} rounded-3xl p-8 text-center max-w-[360px] w-full animate-modal-slide-in`}>
@@ -13,7 +16,12 @@ export default function ClaimModal({ wheelResult, t, onClose }) {
                         <p className="text-lg font-bold mb-1">
                             {wheelResult ? t(`prize${wheelResult.charAt(0).toUpperCase() + wheelResult.slice(1)}`) : t('grandPrize')}
                         </p>
-                        <p className="text-2xl font-bold tracking-wider text-wood-golden">KODE: WOOD2024</p>
+                        <p className="text-2xl font-bold tracking-wider text-wood-golden">
+                            KODE: {code}
+                        </p>
+                        <p className="text-xs text-wood-dark/50 mt-2">
+                            {t('validUntil')}: {new Date(expiry).toLocaleString()}
+                        </p>
                     </div>
                 </div>
                 <button

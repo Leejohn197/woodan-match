@@ -1,4 +1,4 @@
-import { useReducer, useCallback, useEffect, useMemo } from 'react';
+import { useReducer, useCallback, useEffect, useMemo, useRef } from 'react';
 import { LEVEL_CONFIGS, MAX_LEVEL } from '../config/levels';
 import { FURNITURE_THEMES } from '../config/themes';
 import { WHEEL_PRIZES } from '../config/prizes';
@@ -194,11 +194,14 @@ function gameReducer(state, action) {
 
         case ActionTypes.COMPLETE_SPIN: {
             const { prizeId } = action.payload;
+            const newWonPrizes = [...state.wonPrizes, prizeId];
+            // Save to storage synchronously in reducer to avoid stale closure
+            storage.setWonPrizes(newWonPrizes);
             return {
                 ...state,
                 isSpinning: false,
                 wheelResult: prizeId,
-                wonPrizes: [...state.wonPrizes, prizeId]
+                wonPrizes: newWonPrizes
             };
         }
 
@@ -238,6 +241,27 @@ function gameReducer(state, action) {
 // ===== Custom Hook =====
 export function useGameState() {
     const [state, dispatch] = useReducer(gameReducer, null, createInitialState);
+
+    // ===== Timer Refs (for cleanup) =====
+    const spinTimerRef = useRef(null);
+    const matchTimerRef = useRef(null);
+    const tileTimerRef = useRef(null);
+
+    // Clear all pending timers
+    const clearAllTimers = useCallback(() => {
+        if (spinTimerRef.current) {
+            clearTimeout(spinTimerRef.current);
+            spinTimerRef.current = null;
+        }
+        if (matchTimerRef.current) {
+            clearTimeout(matchTimerRef.current);
+            matchTimerRef.current = null;
+        }
+        if (tileTimerRef.current) {
+            clearTimeout(tileTimerRef.current);
+            tileTimerRef.current = null;
+        }
+    }, []);
 
     // ===== Helper Functions =====
 
@@ -360,7 +384,7 @@ export function useGameState() {
 
         dispatch({ type: ActionTypes.ADD_EXITING_TILE, payload: tile.id });
 
-        setTimeout(() => {
+        tileTimerRef.current = setTimeout(() => {
             dispatch({
                 type: ActionTypes.MOVE_TILE_TO_SLOT,
                 payload: { tile }
@@ -393,7 +417,7 @@ export function useGameState() {
             playMatchSound(state.soundEnabled);
             hapticMatch();
 
-            setTimeout(() => {
+            matchTimerRef.current = setTimeout(() => {
                 dispatch({
                     type: ActionTypes.CLEAR_MATCHED_TILES,
                     payload: { matchedType, matchCount: GAME_CONSTANTS.MATCH_COUNT }
@@ -427,10 +451,11 @@ export function useGameState() {
 
     // Go to home
     const goToHome = useCallback(() => {
+        clearAllTimers();
         dispatch({ type: ActionTypes.SET_SCREEN, payload: 'start' });
         dispatch({ type: ActionTypes.SET_MODAL, payload: null });
         dispatch({ type: ActionTypes.SET_LEVEL, payload: 1 });
-    }, []);
+    }, [clearAllTimers]);
 
     // Next level
     const nextLevel = useCallback(() => {
@@ -493,12 +518,11 @@ export function useGameState() {
 
         dispatch({ type: ActionTypes.SET_WHEEL_ROTATION, payload: finalAngle });
 
-        setTimeout(() => {
+        spinTimerRef.current = setTimeout(() => {
             dispatch({
                 type: ActionTypes.COMPLETE_SPIN,
                 payload: { prizeId: selectedPrize.id }
             });
-            storage.setWonPrizes([...state.wonPrizes, selectedPrize.id]);
         }, GAME_CONSTANTS.SPIN_RESULT_DELAY_MS);
     }, [state.isSpinning, state.wonPrizes]);
 

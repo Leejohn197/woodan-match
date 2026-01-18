@@ -41,9 +41,9 @@
 
 ---
 
-## 🔴 待修复问题 - 高优先级
+## 🔴 已修复问题 - 高优先级
 
-### 3. ⚠️ setTimeout 过期状态闭包
+### 3. ✅ setTimeout 过期状态闭包
 
 | 属性 | 内容 |
 |------|------|
@@ -51,19 +51,12 @@
 | **行号** | 496-502 |
 | **问题** | `state.wonPrizes` 在 setTimeout 回调中是闭包捕获时的旧值 |
 | **影响** | 本地存储可能与状态不一致，奖品可能丢失 |
-| **状态** | ❌ 待修复 |
+| **状态** | ✅ 已修复 |
 
+**修复方案**: 将存储逻辑移入 reducer 的 `COMPLETE_SPIN` case 中
 ```javascript
-// 问题代码
-setTimeout(() => {
-    storage.setWonPrizes([...state.wonPrizes, selectedPrize.id]); // 使用过期状态
-}, 6500);
-```
-
-**建议修复方案**:
-```javascript
-// 方案1: 在 reducer 中处理存储
 case ActionTypes.COMPLETE_SPIN: {
+    const { prizeId } = action.payload;
     const newWonPrizes = [...state.wonPrizes, prizeId];
     storage.setWonPrizes(newWonPrizes);  // 同步保存
     return { ...state, wonPrizes: newWonPrizes };
@@ -72,7 +65,7 @@ case ActionTypes.COMPLETE_SPIN: {
 
 ---
 
-### 4. ⚠️ setTimeout 缺少取消机制
+### 4. ✅ setTimeout 缺少取消机制
 
 | 属性 | 内容 |
 |------|------|
@@ -80,33 +73,28 @@ case ActionTypes.COMPLETE_SPIN: {
 | **行号** | 363-368, 396-401, 496-502 |
 | **问题** | 用户快速返回主菜单时，定时器仍会执行 dispatch |
 | **影响** | 可能导致状态不一致或错误的状态更新 |
-| **状态** | ❌ 待修复 |
+| **状态** | ✅ 已修复 |
 
-**涉及的 setTimeout**:
-1. `handleTileClick` - 300ms 后移动瓷砖
-2. `checkMatches` - 300ms 后清除匹配
-3. `spinWheel` - 6500ms 后完成抽奖
-
-**建议修复方案**:
+**修复方案**: 使用 `useRef` 追踪定时器，在 `goToHome` 中清理
 ```javascript
-const timerRef = useRef(null);
+const spinTimerRef = useRef(null);
+const matchTimerRef = useRef(null);
+const tileTimerRef = useRef(null);
 
-// 设置定时器时保存引用
-timerRef.current = setTimeout(() => { ... }, delay);
-
-// 在 START_GAME 或 goToHome 时取消
-useEffect(() => {
-    return () => {
-        if (timerRef.current) clearTimeout(timerRef.current);
-    };
+const clearAllTimers = useCallback(() => {
+    if (spinTimerRef.current) clearTimeout(spinTimerRef.current);
+    if (matchTimerRef.current) clearTimeout(matchTimerRef.current);
+    if (tileTimerRef.current) clearTimeout(tileTimerRef.current);
 }, []);
+
+// goToHome 调用 clearAllTimers()
 ```
 
 ---
 
-## 🟠 待修复问题 - 中优先级
+## 🟠 已修复问题 - 中优先级
 
-### 5. ⚠️ 双击竞态窗口
+### 5. ✅ 双击竞态窗口
 
 | 属性 | 内容 |
 |------|------|
@@ -114,18 +102,18 @@ useEffect(() => {
 | **行号** | 112-113 |
 | **问题** | 在 `isSpinning` 设置之前存在微小时间窗口 |
 | **影响** | 快速双击可能触发两次抽奖 |
-| **状态** | ❌ 待修复 |
+| **状态** | ✅ 已修复 |
 
-**建议修复方案**:
+**修复方案**: 使用 `useRef` 添加同步点击保护
 ```javascript
 const isClickingRef = useRef(false);
 
 const handleSpin = useCallback(() => {
-    if (isClickingRef.current) return;
+    if (isClickingRef.current || isSpinning || isAllWon) return;
     isClickingRef.current = true;
     onSpin();
     setTimeout(() => { isClickingRef.current = false; }, 100);
-}, [onSpin]);
+}, [onSpin, isSpinning, isAllWon]);
 ```
 
 ---
@@ -150,8 +138,8 @@ const handleSpin = useCallback(() => {
 
 | 类别 | 数量 |
 |------|------|
-| 🔴 已修复 | 2 |
-| 🔴 高优先级待修复 | 2 |
-| 🟠 中优先级待修复 | 1 |
+| 🔴 已修复 | 5 |
+| 🔴 高优先级待修复 | 0 |
+| 🟠 中优先级待修复 | 0 |
 | 🟢 低优先级 | 0 |
 | **总计** | **5** |

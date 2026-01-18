@@ -1,3 +1,4 @@
+import { useRef, useCallback } from 'react';
 import { WHEEL_PRIZES, generateWheelGradient } from '../config/prizes';
 
 export default function SpinWheel({
@@ -8,6 +9,17 @@ export default function SpinWheel({
     t
 }) {
     const isAllWon = wonPrizes.length >= WHEEL_PRIZES.length;
+
+    // Ref for immediate click protection (prevents race condition)
+    const isClickingRef = useRef(false);
+
+    const handleSpin = useCallback(() => {
+        if (isClickingRef.current || isSpinning || isAllWon) return;
+        isClickingRef.current = true;
+        onSpin();
+        // Reset after short delay to allow next valid spin
+        setTimeout(() => { isClickingRef.current = false; }, 100);
+    }, [onSpin, isSpinning, isAllWon]);
 
     return (
         <div className="relative w-72 h-72 mx-auto mb-6">
@@ -109,7 +121,7 @@ export default function SpinWheel({
             {/* Center Hub - Fixed, does NOT rotate */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 z-30">
                 <button
-                    onClick={onSpin}
+                    onClick={handleSpin}
                     disabled={isSpinning || isAllWon}
                     className="w-full h-full bg-gradient-to-br from-red-500 via-red-600 to-red-700 rounded-full shadow-[0_8px_32px_rgba(220,38,38,0.5)] flex flex-col items-center justify-center border-4 border-white cursor-pointer transition-all hover:scale-105 hover:shadow-[0_12px_40px_rgba(220,38,38,0.6)] active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:shadow-none"
                 >

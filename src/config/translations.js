@@ -64,6 +64,7 @@ export const TRANSLATIONS = {
         prizeWon: 'Didapat',
         allPrizesWon: 'Anda sudah mendapatkan semua hadiah. Terima kasih atas partisipasi Anda!',
         noPrizesLeft: 'Tidak ada hadiah tersisa',
+        validUntil: 'Berlaku hingga',
         // Share translations
         share: 'Bagikan',
         scanToPlay: '🪵 Scan untuk main bersama',
@@ -134,6 +135,7 @@ export const TRANSLATIONS = {
         prizeWon: '已获得',
         allPrizesWon: '您已获得所有奖品，感谢您的参与！',
         noPrizesLeft: '没有剩余奖品',
+        validUntil: '有效期至',
         // Share translations
         share: '分享',
         scanToPlay: '🪵 扫码一起玩',
@@ -204,6 +206,7 @@ export const TRANSLATIONS = {
         prizeWon: 'Won',
         allPrizesWon: 'You have won all prizes. Thank you for participating!',
         noPrizesLeft: 'No prizes left',
+        validUntil: 'Valid until',
         // Share translations
         share: 'Share',
         scanToPlay: '🪵 Scan to play together',

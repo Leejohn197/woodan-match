@@ -6,8 +6,10 @@ const STORAGE_KEYS = {
     WON_PRIZES: 'woodmatch_wonPrizes',
     LAST_PLAYED: 'woodmatch_lastPlayed',
     PRIZE_DATE: 'woodmatch_prizeDate',
-    HAS_PLAYED: 'woodmatch_hasPlayed'
+    HAS_PLAYED: 'woodmatch_hasPlayed',
+    GIFT_CODES: 'woodmatch_giftCodes'
 };
+
 
 // ===== Unified Storage Layer =====
 export const storage = {
@@ -65,8 +67,30 @@ export const storage = {
             localStorage.removeItem(STORAGE_KEYS.WON_PRIZES);
             localStorage.removeItem(STORAGE_KEYS.LAST_PLAYED);
             localStorage.removeItem(STORAGE_KEYS.HAS_PLAYED);
+            localStorage.removeItem(STORAGE_KEYS.GIFT_CODES);
             return true;
         }
         return false;
+    },
+
+    // Gift Codes
+    getGiftCodes: () => {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEYS.GIFT_CODES);
+            return saved ? JSON.parse(saved) : {};
+        } catch (e) {
+            return {};
+        }
+    },
+
+    saveGiftCode: (prizeId, code, expiry) => {
+        const codes = storage.getGiftCodes();
+        codes[prizeId] = { code, expiry, createdAt: new Date().toISOString() };
+        localStorage.setItem(STORAGE_KEYS.GIFT_CODES, JSON.stringify(codes));
+    },
+
+    getGiftCode: (prizeId) => {
+        const codes = storage.getGiftCodes();
+        return codes[prizeId] || null;
     }
 };
