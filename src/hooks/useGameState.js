@@ -484,7 +484,8 @@ export function useGameState() {
 
     // Spin wheel
     const spinWheel = useCallback(() => {
-        if (state.isSpinning) return;
+        // Prevent spinning if already spinning or if there's an unclaimed prize
+        if (state.isSpinning || state.wheelResult) return;
 
         const availablePrizes = WHEEL_PRIZES.filter(p => !state.wonPrizes.includes(p.id));
         if (availablePrizes.length === 0) return;
@@ -506,15 +507,14 @@ export function useGameState() {
         }
 
         // Calculate rotation
-        // Pointer is at 12 o'clock (top), conic-gradient starts from 3 o'clock (0deg)
-        // To land on a prize, we need to rotate the wheel so the prize center aligns with the pointer
-        // Formula: 360 * spins + (360 - prizeCenter - 90) where 90 is offset from 3 o'clock to 12 o'clock
+        // The conic-gradient now starts at 12 o'clock (top) with prize centers aligned
+        // To land on a prize, we rotate the wheel so the selected prize comes back to the top
+        // Since prizes start at index 0 at the top, we need to rotate by the prize's center angle
         const prizeIndex = WHEEL_PRIZES.findIndex(p => p.id === selectedPrize.id);
         const segmentAngle = 360 / WHEEL_PRIZES.length;
-        const prizeCenter = prizeIndex * segmentAngle + segmentAngle / 2;
-        // Adjust for pointer at top: target angle is where we want the prize to end up (at top/12 o'clock)
-        const targetAngle = 360 - prizeCenter + 90;
-        const finalAngle = 360 * GAME_CONSTANTS.BASE_SPINS + targetAngle;
+        const prizeCenter = prizeIndex * segmentAngle;
+        // Rotate clockwise: negative angle brings the prize to top, add full spins
+        const finalAngle = 360 * GAME_CONSTANTS.BASE_SPINS - prizeCenter;
 
         dispatch({ type: ActionTypes.SET_WHEEL_ROTATION, payload: finalAngle });
 
@@ -524,7 +524,7 @@ export function useGameState() {
                 payload: { prizeId: selectedPrize.id }
             });
         }, GAME_CONSTANTS.SPIN_RESULT_DELAY_MS);
-    }, [state.isSpinning, state.wonPrizes]);
+    }, [state.isSpinning, state.wonPrizes, state.wheelResult]);
 
     // Dismiss cooldown
     const dismissCooldown = useCallback(() => {

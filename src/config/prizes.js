@@ -11,12 +11,16 @@ export const WHEEL_PRIZES = [
 ];
 
 // Generate conic gradient dynamically
+// Start from -90deg (270deg) so the first prize segment is centered at the top (12 o'clock)
+// where the pointer is located
 export function generateWheelGradient(prizes) {
     const segmentAngle = 360 / prizes.length;
+    // Offset by half a segment so the prize CENTER (not edge) aligns with the pointer
+    const startOffset = -90 - segmentAngle / 2;
     const gradientParts = prizes.map((prize, index) => {
         const startAngle = index * segmentAngle;
         const endAngle = (index + 1) * segmentAngle;
         return `${prize.color} ${startAngle}deg ${endAngle}deg`;
     });
-    return `conic-gradient(from 0deg, ${gradientParts.join(', ')})`;
+    return `conic-gradient(from ${startOffset}deg, ${gradientParts.join(', ')})`;
 }
