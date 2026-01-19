@@ -90,6 +90,15 @@ export const storage = {
         localStorage.setItem(STORAGE_KEYS.LAST_PLAYED, Date.now().toString());
     },
 
+    // Clear cooldown (for new user session in LCD touchscreen scenario)
+    clearCooldown: () => {
+        try {
+            localStorage.removeItem(STORAGE_KEYS.LAST_PLAYED);
+        } catch {
+            // silently fail in privacy mode
+        }
+    },
+
     // Daily reset check - returns true if reset occurred
     checkDailyReset: () => {
         const today = new Date().toISOString().split('T')[0];

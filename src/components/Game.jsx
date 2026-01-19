@@ -49,23 +49,46 @@ export default function Game() {
     actions.checkGameEnd();
   }, [state.slots, state.tiles, state.isMatching, actions.checkGameEnd]);
 
+  // Cooldown timer ref - ensures only one active timer
+  const cooldownTimerRef = useRef(null);
+
   // Cooldown timer effect
   useEffect(() => {
+    // Clear previous timer to prevent duplicates
+    if (cooldownTimerRef.current) {
+      clearInterval(cooldownTimerRef.current);
+      cooldownTimerRef.current = null;
+    }
+
     if (state.activeModal === 'cooldown' && state.cooldownRemaining > 0) {
-      const timer = setInterval(() => {
+      cooldownTimerRef.current = setInterval(() => {
         if (state.cooldownRemaining <= 1) {
-          clearInterval(timer);
-          actions.setModal(null);
+          clearInterval(cooldownTimerRef.current);
+          cooldownTimerRef.current = null;
+          actions.dismissCooldown();  // 使用与手动关闭相同的完整重置逻辑
         } else {
           actions.decrementCooldown();
         }
       }, 1000);
-      return () => clearInterval(timer);
     }
+
+    return () => {
+      if (cooldownTimerRef.current) {
+        clearInterval(cooldownTimerRef.current);
+        cooldownTimerRef.current = null;
+      }
+    };
   }, [state.activeModal, state.cooldownRemaining, actions]);
 
   // Track previous level for detecting level changes
   const prevLevelRef = useRef(state.currentLevel);
+
+  // Reset prevLevelRef when returning to start screen
+  useEffect(() => {
+    if (state.currentScreen === 'start') {
+      prevLevelRef.current = 1;
+    }
+  }, [state.currentScreen]);
 
   // Handle next level (just update level, useEffect will start game)
   const handleNextLevel = useCallback(() => {

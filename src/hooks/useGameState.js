@@ -250,6 +250,9 @@ export function useGameState() {
     const matchTimerRef = useRef(null);
     const tileTimerRef = useRef(null);
 
+    // ===== State Ref (avoid stale closure) =====
+    const currentLevelRef = useRef(state.currentLevel);
+
     // Clear all pending timers
     const clearAllTimers = useCallback(() => {
         if (spinTimerRef.current) {
@@ -265,6 +268,11 @@ export function useGameState() {
             tileTimerRef.current = null;
         }
     }, []);
+
+    // Keep currentLevelRef in sync with state
+    useEffect(() => {
+        currentLevelRef.current = state.currentLevel;
+    }, [state.currentLevel]);
 
     // ===== Helper Functions =====
 
@@ -352,7 +360,15 @@ export function useGameState() {
     const startGame = useCallback((options = {}) => {
         const { resetPrizes = false } = options;
 
-        // Check cooldown
+        // For new user session (from main menu), clear previous user's cooldown first
+        // This ensures each user in LCD touchscreen scenario can start immediately
+        if (resetPrizes) {
+            storage.clearCooldown();
+            storage.setWonPrizes([]);
+            storage.setWheelRotation(0);
+        }
+
+        // Check cooldown (only applies when continuing within same session, e.g., retry)
         const remaining = storage.checkCooldown();
         if (remaining > 0) {
             dispatch({ type: ActionTypes.SET_COOLDOWN, payload: remaining });
@@ -360,19 +376,13 @@ export function useGameState() {
             return;
         }
 
-        const config = LEVEL_CONFIGS[state.currentLevel];
+        const config = LEVEL_CONFIGS[currentLevelRef.current];
         const newTiles = generateTiles(config);
         const checkedTiles = checkBlockedTilesHelper(newTiles);
 
         dispatch({ type: ActionTypes.START_GAME, payload: { tiles: checkedTiles, resetPrizes } });
-
-        // Clear storage if resetting prizes
-        if (resetPrizes) {
-            storage.setWonPrizes([]);
-            storage.setWheelRotation(0);
-        }
         storage.recordPlaySession();
-    }, [state.currentLevel, generateTiles]);
+    }, [generateTiles]);
 
     // Handle tile click
     const handleTileClick = useCallback((tile) => {
@@ -454,9 +464,13 @@ export function useGameState() {
     // Go to home
     const goToHome = useCallback(() => {
         clearAllTimers();
+        currentLevelRef.current = 1;  // 同步更新 ref，避免竞态条件
         dispatch({ type: ActionTypes.SET_SCREEN, payload: 'start' });
         dispatch({ type: ActionTypes.SET_MODAL, payload: null });
         dispatch({ type: ActionTypes.SET_LEVEL, payload: 1 });
+        // 清理游戏状态，防止动画中途返回时残留
+        dispatch({ type: ActionTypes.SET_TILES, payload: [] });
+        dispatch({ type: ActionTypes.REMOVE_FROM_SLOTS, payload: [] });
     }, [clearAllTimers]);
 
     // Next level
@@ -567,6 +581,7 @@ export function useGameState() {
     // Dismiss cooldown - returns to home screen with fresh state
     const dismissCooldown = useCallback(() => {
         clearAllTimers();
+        currentLevelRef.current = 1;  // 同步更新 ref，避免竞态条件
         dispatch({ type: ActionTypes.SET_MODAL, payload: null });
         dispatch({ type: ActionTypes.SET_COOLDOWN, payload: 0 });
         dispatch({ type: ActionTypes.SET_SCREEN, payload: 'start' });
