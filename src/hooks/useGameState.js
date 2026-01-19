@@ -537,7 +537,7 @@ export function useGameState() {
         // We want prize to end at 270° (top, where pointer is)
         // (prizeInitialAngle + R) % 360 === 270
         // R % 360 = (270 - prizeInitialAngle + 360) % 360
-        const pointerAngle = 270;  // Top position = 270° in [0,360) range
+        const pointerAngle = 0;  // Top position = 0° in CSS rotation (12 o'clock)
         let targetRotation = (pointerAngle - prizeInitialAngle) % 360;
         if (targetRotation < 0) targetRotation += 360;  // Normalize to [0, 360)
 
