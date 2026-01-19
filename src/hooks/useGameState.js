@@ -224,6 +224,8 @@ function gameReducer(state, action) {
                 removingSlots: new Set(),
                 wheelResult: null,
                 isSpinning: false,
+                wheelRotation: action.payload.resetPrizes ? 0 : state.wheelRotation,
+                wonPrizes: action.payload.resetPrizes ? [] : state.wonPrizes,
                 currentScreen: 'game'
             };
 
@@ -347,7 +349,9 @@ export function useGameState() {
     }, []);
 
     // Start game
-    const startGame = useCallback(() => {
+    const startGame = useCallback((options = {}) => {
+        const { resetPrizes = false } = options;
+
         // Check cooldown
         const remaining = storage.checkCooldown();
         if (remaining > 0) {
@@ -360,7 +364,13 @@ export function useGameState() {
         const newTiles = generateTiles(config);
         const checkedTiles = checkBlockedTilesHelper(newTiles);
 
-        dispatch({ type: ActionTypes.START_GAME, payload: { tiles: checkedTiles } });
+        dispatch({ type: ActionTypes.START_GAME, payload: { tiles: checkedTiles, resetPrizes } });
+
+        // Clear storage if resetting prizes
+        if (resetPrizes) {
+            storage.setWonPrizes([]);
+            storage.setWheelRotation(0);
+        }
         storage.recordPlaySession();
     }, [state.currentLevel, generateTiles]);
 
@@ -554,11 +564,14 @@ export function useGameState() {
         }, GAME_CONSTANTS.SPIN_RESULT_DELAY_MS);
     }, [state.isSpinning, state.wonPrizes, state.wheelResult, state.wheelRotation]);
 
-    // Dismiss cooldown
+    // Dismiss cooldown - returns to home screen with fresh state
     const dismissCooldown = useCallback(() => {
+        clearAllTimers();
         dispatch({ type: ActionTypes.SET_MODAL, payload: null });
         dispatch({ type: ActionTypes.SET_COOLDOWN, payload: 0 });
-    }, []);
+        dispatch({ type: ActionTypes.SET_SCREEN, payload: 'start' });
+        dispatch({ type: ActionTypes.SET_LEVEL, payload: 1 });
+    }, [clearAllTimers]);
 
     // Toggle sound
     const toggleSound = useCallback(() => {

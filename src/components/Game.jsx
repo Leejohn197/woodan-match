@@ -99,7 +99,7 @@ export default function Game() {
           currentLang={state.currentLang}
           t={t}
           onLanguageChange={actions.changeLanguage}
-          onStartGame={actions.startGame}
+          onStartGame={() => actions.startGame({ resetPrizes: true })}
           onShare={() => actions.setModal('share')}
         />
       )}
