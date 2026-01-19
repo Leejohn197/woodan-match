@@ -90,9 +90,26 @@ export default function Game() {
     }
   }, [state.currentScreen]);
 
+  // ===== Click Lock for Debounce (LCD Touchscreen Protection) =====
+  const clickLockRef = useRef(false);
+
+  // Utility to wrap callbacks with click lock protection
+  const withClickLock = useCallback((callback) => {
+    return (...args) => {
+      if (clickLockRef.current) return;
+      clickLockRef.current = true;
+      callback(...args);
+      setTimeout(() => { clickLockRef.current = false; }, 300);
+    };
+  }, []);
+
+  // ===== Protected Callbacks =====
   // Handle next level (just update level, useEffect will start game)
   const handleNextLevel = useCallback(() => {
+    if (clickLockRef.current) return;
+    clickLockRef.current = true;
     actions.nextLevel();
+    setTimeout(() => { clickLockRef.current = false; }, 300);
   }, [actions]);
 
   // Watch for level changes and auto-start game
@@ -103,15 +120,45 @@ export default function Game() {
     }
   }, [state.currentLevel, state.activeModal, actions]);
 
-  // Handle retry
+  // Handle retry (protected)
   const handleRetry = useCallback(() => {
+    if (clickLockRef.current) return;
+    clickLockRef.current = true;
     actions.retry();
     actions.startGame();
+    setTimeout(() => { clickLockRef.current = false; }, 300);
   }, [actions]);
 
-  // Handle claim prize (open claim modal)
+  // Handle claim prize (protected)
   const handleClaimPrize = useCallback(() => {
+    if (clickLockRef.current) return;
+    clickLockRef.current = true;
     actions.setModal('claim');
+    setTimeout(() => { clickLockRef.current = false; }, 300);
+  }, [actions]);
+
+  // Handle start game (protected)
+  const handleStartGame = useCallback(() => {
+    if (clickLockRef.current) return;
+    clickLockRef.current = true;
+    actions.startGame({ resetPrizes: true });
+    setTimeout(() => { clickLockRef.current = false; }, 300);
+  }, [actions]);
+
+  // Handle claim current reward (protected)
+  const handleClaimCurrentReward = useCallback(() => {
+    if (clickLockRef.current) return;
+    clickLockRef.current = true;
+    actions.claimCurrentReward();
+    setTimeout(() => { clickLockRef.current = false; }, 300);
+  }, [actions]);
+
+  // Handle go home (protected)
+  const handleGoHome = useCallback(() => {
+    if (clickLockRef.current) return;
+    clickLockRef.current = true;
+    actions.goToHome();
+    setTimeout(() => { clickLockRef.current = false; }, 300);
   }, [actions]);
 
   return (
@@ -122,7 +169,7 @@ export default function Game() {
           currentLang={state.currentLang}
           t={t}
           onLanguageChange={actions.changeLanguage}
-          onStartGame={() => actions.startGame({ resetPrizes: true })}
+          onStartGame={handleStartGame}
           onShare={() => actions.setModal('share')}
         />
       )}
@@ -140,7 +187,7 @@ export default function Game() {
           t={t}
           getFurnitureName={getFurnitureName}
           onTileClick={actions.handleTileClick}
-          onGoHome={actions.goToHome}
+          onGoHome={handleGoHome}
           onToggleSound={actions.toggleSound}
         />
       )}
@@ -154,11 +201,11 @@ export default function Game() {
           wheelResult={state.wheelResult}
           wonPrizes={state.wonPrizes}
           t={t}
-          onClaimReward={actions.claimCurrentReward}
+          onClaimReward={handleClaimCurrentReward}
           onRiskNextLevel={handleNextLevel}
           onSpinWheel={actions.spinWheel}
           onClaimPrize={handleClaimPrize}
-          onGoHome={actions.goToHome}
+          onGoHome={handleGoHome}
         />
       )}
 
@@ -167,7 +214,7 @@ export default function Game() {
         <GameOverModal
           t={t}
           onRetry={handleRetry}
-          onGoHome={actions.goToHome}
+          onGoHome={handleGoHome}
         />
       )}
 
@@ -185,7 +232,7 @@ export default function Game() {
         <ClaimRewardModal
           claimedRewardLevel={state.claimedRewardLevel}
           t={t}
-          onClose={actions.goToHome}
+          onClose={handleGoHome}
         />
       )}
 
@@ -194,7 +241,7 @@ export default function Game() {
         <ClaimModal
           wheelResult={state.wheelResult}
           t={t}
-          onClose={actions.goToHome}
+          onClose={handleGoHome}
         />
       )}
 

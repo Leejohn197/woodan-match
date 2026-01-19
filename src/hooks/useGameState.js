@@ -366,6 +366,7 @@ export function useGameState() {
             storage.clearCooldown();
             storage.setWonPrizes([]);
             storage.setWheelRotation(0);
+            storage.clearGiftCodes();
         }
 
         // Check cooldown (only applies when continuing within same session, e.g., retry)

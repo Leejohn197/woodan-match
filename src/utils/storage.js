@@ -135,5 +135,14 @@ export const storage = {
     getGiftCode: (prizeId) => {
         const codes = storage.getGiftCodes();
         return codes[prizeId] || null;
+    },
+
+    // Clear all gift codes (for new user session in LCD touchscreen scenario)
+    clearGiftCodes: () => {
+        try {
+            localStorage.removeItem(STORAGE_KEYS.GIFT_CODES);
+        } catch {
+            // silently fail in privacy mode
+        }
     }
 };
