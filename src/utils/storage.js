@@ -64,7 +64,8 @@ export const storage = {
     setWheelRotation: (rotation) => {
         try {
             // Store normalized angle (0-360) to avoid very large numbers
-            const normalized = rotation % 360;
+            // Note: JavaScript % can return negative values, so we ensure positive
+            const normalized = ((rotation % 360) + 360) % 360;
             localStorage.setItem(STORAGE_KEYS.WHEEL_ROTATION, normalized.toString());
         } catch {
             // silently fail in privacy mode

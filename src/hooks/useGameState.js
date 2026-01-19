@@ -488,7 +488,7 @@ export function useGameState() {
         // Weighted random selection
         const totalWeight = availablePrizes.reduce((sum, p) => sum + p.weight, 0);
         let random = Math.random() * totalWeight;
-        let selectedPrize = availablePrizes[0];
+        let selectedPrize = null;
 
         for (const prize of availablePrizes) {
             random -= prize.weight;
@@ -498,29 +498,49 @@ export function useGameState() {
             }
         }
 
-        // Calculate rotation - CUMULATIVE MODE
-        // We must add to the current rotation to ensure the wheel always spins clockwise
-        // If we set an absolute angle that's smaller than current, the wheel would spin backwards!
-        const prizeIndex = WHEEL_PRIZES.findIndex(p => p.id === selectedPrize.id);
-        const segmentAngle = 360 / WHEEL_PRIZES.length;
-
-        // Target position: where Prize[i] would be at the top (pointer position)
-        // Prize[i] needs to be at 0 degrees (top) after rotation
-        // With wheel rotated by angle R, Prize[i] is at top when: (i * segmentAngle + R) % 360 = 0
-        // So we need R % 360 = (360 - i * segmentAngle) % 360 = ((8-i) % 8) * segmentAngle
-        const targetAngle = ((WHEEL_PRIZES.length - prizeIndex) % WHEEL_PRIZES.length) * segmentAngle;
-
-        // Current wheel position (normalized to 0-360)
-        const currentNormalizedAngle = state.wheelRotation % 360;
-
-        // Calculate the additional rotation needed to reach target
-        // Must be positive (clockwise) and we add base spins for visual effect
-        let additionalToTarget = targetAngle - currentNormalizedAngle;
-        if (additionalToTarget <= 0) {
-            additionalToTarget += 360;  // Ensure we spin forward, not backward
+        // Safety fallback: if no prize selected, use last available prize
+        if (!selectedPrize) {
+            selectedPrize = availablePrizes[availablePrizes.length - 1];
         }
 
-        // Add base spins (8 full rotations) for visual effect, then additional rotation to land on target
+        // ===== ROTATION CALCULATION =====
+        // 
+        // Coordinate System:
+        //   - CSS rotate(0deg) = 3 o'clock position
+        //   - Pointer is FIXED at top = -90° = 270°
+        //   - Prize[i] initial center = -90 + i * 45 degrees
+        //   - CSS rotate(R) rotates the wheel CLOCKWISE by R degrees
+        //   - After rotation, Prize[i] is at: (-90 + i*45 + R) mod 360
+        //
+        // Goal: Find R such that Prize[i] ends up at pointer position (270°)
+        //   (-90 + i*45 + R) ≡ 270 (mod 360)
+        //   R ≡ 270 + 90 - i*45 (mod 360)
+        //   R ≡ 360 - i*45 (mod 360)
+        //   R ≡ (numPrizes - i) * segmentAngle (mod 360)
+        //
+        const prizeIndex = WHEEL_PRIZES.findIndex(p => p.id === selectedPrize.id);
+        const segmentAngle = 360 / WHEEL_PRIZES.length;  // 45°
+
+        // Prize[prizeIndex] initial position in world coordinates
+        const prizeInitialAngle = -90 + prizeIndex * segmentAngle;
+
+        // We want prize to end at 270° (top, where pointer is)
+        // (prizeInitialAngle + R) % 360 === 270
+        // R % 360 = (270 - prizeInitialAngle + 360) % 360
+        const pointerAngle = 270;  // Top position = 270° in [0,360) range
+        let targetRotation = (pointerAngle - prizeInitialAngle) % 360;
+        if (targetRotation < 0) targetRotation += 360;  // Normalize to [0, 360)
+
+        // Current wheel position (normalized to 0-360)
+        const currentNormalizedAngle = ((state.wheelRotation % 360) + 360) % 360;  // Handle negative values
+
+        // Calculate additional rotation needed (must be positive for clockwise spin)
+        let additionalToTarget = targetRotation - currentNormalizedAngle;
+        if (additionalToTarget <= 0) {
+            additionalToTarget += 360;  // Ensure clockwise spin
+        }
+
+        // Add base spins (8 full rotations) for visual effect
         const baseRotation = 360 * GAME_CONSTANTS.BASE_SPINS;
         const finalAngle = state.wheelRotation + baseRotation + additionalToTarget;
 

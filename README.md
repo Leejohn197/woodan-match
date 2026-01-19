@@ -32,55 +32,178 @@ npm run build
 
 ---
 
-## 📁 项目结构
+## 📁 项目结构详解（新手友好版）
 
-```
-src/
-├── components/
-│   ├── Game.jsx           # 主游戏控制器
-│   ├── StartScreen.jsx    # 开始界面
-│   ├── GameBoard.jsx      # 游戏面板
-│   ├── SpinWheel.jsx      # 转盘组件
-│   └── modals/
-│       ├── VictoryModal.jsx
-│       ├── GameOverModal.jsx
-│       ├── ClaimModal.jsx
-│       ├── ClaimRewardModal.jsx
-│       └── CooldownModal.jsx
-├── config/
-│   ├── translations.js    # 多语言配置
-│   ├── levels.js          # 关卡配置
-│   ├── themes.js          # 家具主题
-│   ├── prizes.js          # 转盘奖品
-│   └── constants.js       # 游戏常量
-├── hooks/
-│   └── useGameState.js    # 游戏状态管理 (useReducer)
-├── utils/
-│   ├── audio.js           # 音频/触感
-│   ├── helpers.js         # 工具函数
-│   └── storage.js         # localStorage 封装
-├── pages/
-│   └── index.astro
-└── styles/
-    └── global.css
-```
+> 💡 **给小白的话**：不要被这么多文件吓到！下面会用通俗的语言解释每个文件/文件夹的作用。
+
+### 🏠 根目录文件
+
+| 文件 | 这是什么？ | 作用 |
+|:-----|:----------|:-----|
+| `package.json` | 📦 项目身份证 | 记录项目名称、版本，以及项目用到的所有"工具包"（依赖） |
+| `package-lock.json` | 🔒 工具包版本锁 | 确保团队每个人安装的工具包版本完全一致 |
+| `astro.config.mjs` | ⚙️ 框架配置文件 | 告诉 Astro 框架如何构建项目（启用 React、Tailwind 等） |
+| `tsconfig.json` | 📝 TypeScript 配置 | 设置代码检查规则，让编辑器更好地理解代码 |
+| `.gitignore` | 🙈 Git 忽略清单 | 告诉 Git 哪些文件不需要上传（如 node_modules） |
+| `README.md` | 📖 项目说明书 | 就是你正在看的这个文件！ |
+
+### 📂 根目录文件夹
+
+| 文件夹 | 这是什么？ | 作用 |
+|:-------|:----------|:-----|
+| `src/` | 📦 **源代码目录** | 所有游戏代码都在这里，是最重要的文件夹！ |
+| `public/` | 🖼️ 静态资源目录 | 存放图片、图标等"原样"使用的文件 |
+| `dist/` | 📤 构建输出目录 | 运行 `npm run build` 后生成的最终网站文件 |
+| `node_modules/` | 📚 依赖包仓库 | 自动生成，存放项目用到的所有第三方代码 |
+| `.git/` | 🗂️ Git 版本库 | 记录代码的所有历史修改，一般不需要手动操作 |
+| `.vscode/` | 💻 编辑器配置 | VS Code 编辑器的个性化设置 |
+| `code review/` | 📋 代码审查文档 | 存放代码审查报告和问题记录 |
 
 ---
 
-## 🧞 命令
+## 📦 src/ 源代码目录详解
+
+这是游戏的"大脑"，所有核心代码都在这里！
+
+### 📁 src/components/ — 组件（积木块）
+
+> 💡 **组件是什么？** 可以理解为"可复用的功能模块"，就像乐高积木一样可以拼装。
+
+| 文件 | 作用 |
+|:-----|:-----|
+| `Game.jsx` | 🎮 **主游戏控制器** — 游戏的"总指挥"，控制整个游戏流程 |
+| `StartScreen.jsx` | 🏠 **开始界面** — 玩家进入游戏看到的第一个画面 |
+| `GameBoard.jsx` | 🎯 **游戏面板** — 显示所有家具卡片的主游戏区域 |
+| `SpinWheel.jsx` | 🎡 **幸运转盘** — 通关后的抽奖转盘组件 |
+| `PremiumShareCard.jsx` | 📤 **分享卡片** — 生成精美的分享图片 |
+
+#### 📁 src/components/modals/ — 弹窗组件
+
+| 文件 | 作用 |
+|:-----|:-----|
+| `VictoryModal.jsx` | 🏆 过关胜利弹窗 |
+| `GameOverModal.jsx` | 😢 游戏失败弹窗 |
+| `ClaimModal.jsx` | 🎁 领取奖品弹窗 |
+| `ClaimRewardModal.jsx` | 🎉 奖励确认弹窗 |
+| `CooldownModal.jsx` | ⏰ 冷却等待弹窗 |
+| `ShareModal.jsx` | 📤 分享弹窗 |
+
+---
+
+### 📁 src/config/ — 配置文件（游戏设定）
+
+> 💡 **配置是什么？** 存放游戏的各种"设定值"，方便修改而无需改动核心代码。
+
+| 文件 | 作用 |
+|:-----|:-----|
+| `translations.js` | 🌍 **多语言翻译** — 存放中文、印尼语等翻译文本 |
+| `levels.js` | 📊 **关卡配置** — 定义每一关的难度、时间、卡片数量 |
+| `themes.js` | 🪑 **家具主题** — 定义游戏中使用的家具图片 |
+| `prizes.js` | 🎁 **转盘奖品** — 定义转盘上的奖品内容 |
+| `constants.js` | ⚙️ **游戏常量** — 存放不变的数值（如转盘冷却时间） |
+
+---
+
+### 📁 src/hooks/ — 自定义 Hook（状态管理）
+
+> 💡 **Hook 是什么？** React 的一种特性，用于"钩住"和管理组件的状态。
+
+| 文件 | 作用 |
+|:-----|:-----|
+| `useGameState.js` | 🧠 **游戏状态管理** — 游戏的"大脑"，管理所有游戏数据（分数、关卡、时间等） |
+| `useGiftCode.js` | 🎫 **礼品码管理** — 处理礼品码的生成和验证 |
+
+---
+
+### 📁 src/utils/ — 工具函数（小助手）
+
+> 💡 **工具函数是什么？** 可复用的"小帮手"函数，处理通用的任务。
+
+| 文件 | 作用 |
+|:-----|:-----|
+| `audio.js` | 🔊 **音效管理** — 播放点击音效、胜利音效等 |
+| `storage.js` | 💾 **本地存储** — 保存游戏进度到浏览器（不丢失数据） |
+| `helpers.js` | 🛠️ **通用工具** — 一些通用的辅助函数 |
+| `giftCode.js` | 🎁 **礼品码工具** — 生成和处理礼品码 |
+
+---
+
+### 📁 src/pages/ — 页面
+
+> 💡 **页面是什么？** 用户可以访问的 URL 对应的内容。
+
+| 文件 | 作用 |
+|:-----|:-----|
+| `index.astro` | 🏠 **首页** — 访问网站时看到的主页面 |
+| `share-card-demo.astro` | 📤 **分享卡片演示页** — 用于测试分享卡片功能 |
+
+---
+
+### 📁 src/styles/ — 样式
+
+| 文件 | 作用 |
+|:-----|:-----|
+| `global.css` | 🎨 **全局样式** — 整个网站通用的样式设置 |
+
+---
+
+## 🖼️ public/ 静态资源目录
+
+这里的文件会"原样"复制到最终网站：
+
+### 📁 public/images/ — 游戏图片
+
+| 文件 | 作用 |
+|:-----|:-----|
+| `background.jpg` | 🏞️ 游戏背景图 |
+| `armchair.png` | 🪑 扶手椅图片 |
+| `dining_chair.png` | 🪑 餐椅图片 |
+| `ladder_chair.png` | 🪜 梯椅图片 |
+| `lounge_chair.png` | 🛋️ 躺椅图片 |
+| `round_table.png` | 🔵 圆桌图片 |
+| `table.png` | 🟫 方桌图片 |
+| `stool.png` | 🪑 凳子图片 |
+| `pattern1.png` / `pattern2.png` | 🎨 装饰纹理 |
+
+### 📁 public/icons/ — 转盘奖品图标
+
+| 文件 | 作用 |
+|:-----|:-----|
+| `coupon.png` | 🎟️ 优惠券图标 |
+| `discount.png` | 💰 折扣图标 |
+| `furniture.png` | 🪑 家具图标 |
+| `gift.png` | 🎁 礼物图标 |
+| `mystery.png` | ❓ 神秘礼物图标 |
+
+---
+
+## 🧞 常用命令
 
 | 命令 | 说明 |
 |:-----|:-----|
-| `npm install` | 安装依赖 |
-| `npm run dev` | 启动开发服务器 (localhost:4321) |
-| `npm run build` | 构建生产版本到 `./dist/` |
-| `npm run preview` | 本地预览生产构建 |
+| `npm install` | 📦 安装所有依赖包 |
+| `npm run dev` | 🚀 启动开发服务器 (localhost:4321) |
+| `npm run build` | 🏗️ 构建生产版本到 `./dist/` |
+| `npm run preview` | 👀 本地预览生产构建 |
 
 ---
 
 ## 🛠️ 技术栈
 
-- **框架**: Astro 5 + React 19
-- **样式**: Tailwind CSS 4
-- **状态管理**: React useReducer
-- **语言**: JavaScript (JSX)
+| 技术 | 用途 |
+|:-----|:-----|
+| **Astro 5** | 🚀 网站构建框架，速度快、性能好 |
+| **React 19** | ⚛️ UI 组件库，用于构建交互界面 |
+| **Tailwind CSS 4** | 🎨 CSS 工具框架，快速美化界面 |
+| **useReducer** | 🧠 React 状态管理方案 |
+
+---
+
+## 🎯 新手入门建议
+
+1. **想改游戏设置？** → 看 `src/config/` 文件夹
+2. **想改界面外观？** → 看 `src/components/` 和 `src/styles/`
+3. **想改游戏逻辑？** → 看 `src/hooks/useGameState.js`
+4. **想换图片素材？** → 看 `public/images/` 文件夹
+
+祝你开发愉快！🎉
